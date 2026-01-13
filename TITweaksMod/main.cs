@@ -1,24 +1,31 @@
 ﻿using HarmonyLib;
-using UnityModManagerNet;
 using System.Reflection;
 using UnityEngine;
+using UnityModManagerNet;
 
-namespace TILinearCostForMinesBeyondCapMod
+namespace TITweaksMod
 {
     internal static class Main
     {
         internal static Harmony harmony;
         internal static bool enabled;
-        internal static Settings settings;
-
-        // Default multiplier constant
-        internal const int DefaultLinearCostMultiplier = 5;
+        internal static Settings settings { get; private set; }
+        internal static UnityModManager.ModEntry.ModLogger logger;
+        internal static string modName { get; private set; } = "TITweaksMod";
 
         private static bool Load(UnityModManager.ModEntry modEntry)
         {
+            logger = modEntry.Logger;
+            modName = string.IsNullOrEmpty(modEntry.Info.DisplayName) ? modEntry.Info.Id : modEntry.Info.DisplayName;
+
             settings = UnityModManager.ModSettings.Load<Settings>(modEntry) ?? new Settings();
 
+            MethodHashUtil.VerifyAll(logger, modName);
+
             harmony = new Harmony(modEntry.Info.Id);
+
+            if (settings.modPatchOnLoad)
+                harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = OnGUI;
@@ -61,7 +68,8 @@ namespace TILinearCostForMinesBeyondCapMod
 
     public class Settings : UnityModManager.ModSettings
     {
-        // default multiplier
-        public int linearCostMultiplier = Main.DefaultLinearCostMultiplier;
+        public bool modPatchOnLoad = true;
+        public bool tweakMineCostEnabled = true;
+        public int linearCostMultiplier = 6;
     }
 }
