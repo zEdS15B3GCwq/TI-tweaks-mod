@@ -3,7 +3,10 @@ using PavonisInteractive.TerraInvicta;
 
 namespace TITweaksMod.patches
 {
-    [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork))]
+    [HarmonyPatch(
+        typeof(TIFactionState),
+        nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork)
+    )]
     internal static class MineCostPatch
     {
         // Replaces GetMissionControlRequirementFromMineNetwork() to use a linear cost based on mine network size

@@ -1,5 +1,5 @@
-﻿using HarmonyLib;
-using System.Reflection;
+﻿using System.Reflection;
+using HarmonyLib;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -16,7 +16,9 @@ namespace TITweaksMod
         private static bool Load(UnityModManager.ModEntry modEntry)
         {
             logger = modEntry.Logger;
-            modName = string.IsNullOrEmpty(modEntry.Info.DisplayName) ? modEntry.Info.Id : modEntry.Info.DisplayName;
+            modName = string.IsNullOrEmpty(modEntry.Info.DisplayName)
+                ? modEntry.Info.Id
+                : modEntry.Info.DisplayName;
 
             settings = UnityModManager.ModSettings.Load<Settings>(modEntry) ?? new Settings();
 
@@ -52,7 +54,12 @@ namespace TITweaksMod
             GUILayout.Label("Mine cost multiplier:");
 
             // Slider always snaps to integers - no smooth dragging
-            float sliderValue = GUILayout.HorizontalSlider(settings.linearCostMultiplier, 1, 15, GUILayout.Width(200));
+            float sliderValue = GUILayout.HorizontalSlider(
+                settings.linearCostMultiplier,
+                1,
+                15,
+                GUILayout.Width(200)
+            );
             settings.linearCostMultiplier = Mathf.Clamp(Mathf.RoundToInt(sliderValue), 1, 15);
 
             GUILayout.Label(settings.linearCostMultiplier.ToString());

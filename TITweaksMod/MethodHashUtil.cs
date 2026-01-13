@@ -1,8 +1,8 @@
-using HarmonyLib;
-using PavonisInteractive.TerraInvicta;
 using System;
 using System.Reflection;
 using System.Security.Cryptography;
+using HarmonyLib;
+using PavonisInteractive.TerraInvicta;
 using UnityModManagerNet;
 
 namespace TITweaksMod
@@ -10,7 +10,8 @@ namespace TITweaksMod
     internal static class MethodHashUtil
     {
         // Expected hashes (populate from a known-good game version)
-        private const string Hash_TIFactionState_GetMissionControlRequirementFromMineNetwork_Int32 = "PUT_EXPECTED_HASH_HERE";
+        private const string Hash_TIFactionState_GetMissionControlRequirementFromMineNetwork_Int32 =
+            "PUT_EXPECTED_HASH_HERE";
 
         private static readonly MethodHashSpec[] MethodHashes = new[]
         {
@@ -19,8 +20,10 @@ namespace TITweaksMod
                 AccessTools.Method(
                     typeof(TIFactionState),
                     nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork),
-                    new[] { typeof(int) }),
-                Hash_TIFactionState_GetMissionControlRequirementFromMineNetwork_Int32),
+                    new[] { typeof(int) }
+                ),
+                Hash_TIFactionState_GetMissionControlRequirementFromMineNetwork_Int32
+            ),
         };
 
         internal static void VerifyAll(UnityModManager.ModEntry.ModLogger logger, string ModName)
@@ -42,11 +45,18 @@ namespace TITweaksMod
                     continue;
                 }
 
-                if (!string.Equals(actual, spec.ExpectedSha256Hex, StringComparison.OrdinalIgnoreCase))
+                if (
+                    !string.Equals(
+                        actual,
+                        spec.ExpectedSha256Hex,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
                 {
                     logger?.Warning(
-                        $"[{ModName}] Hash mismatch: game code changed; patch may need updating. " +
-                        $"Method={spec.Name}, Expected={spec.ExpectedSha256Hex}, Actual={actual}");
+                        $"[{ModName}] Hash mismatch: game code changed; patch may need updating. "
+                            + $"Method={spec.Name}, Expected={spec.ExpectedSha256Hex}, Actual={actual}"
+                    );
                 }
             }
         }

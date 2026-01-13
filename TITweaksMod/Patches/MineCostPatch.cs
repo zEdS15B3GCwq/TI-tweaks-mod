@@ -3,7 +3,10 @@ using PavonisInteractive.TerraInvicta;
 
 namespace TILinearCostForMinesBeyondCapMod.patches
 {
-    [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork))]
+    [HarmonyPatch(
+        typeof(TIFactionState),
+        nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork)
+    )]
     internal static class MineCostPatch
     {
         static bool Prefix(TIFactionState __instance, ref int __result, int mineNetworkSize = -1)
@@ -16,7 +19,10 @@ namespace TILinearCostForMinesBeyondCapMod.patches
 
             mineNetworkSize -= __instance.SafeMineNextworkSize;
 
-            int k = (Main.settings != null) ? Main.settings.linearCostMultiplier : Main.DefaultLinearCostMultiplier;
+            int k =
+                (Main.settings != null)
+                    ? Main.settings.linearCostMultiplier
+                    : Main.DefaultLinearCostMultiplier;
             __result = mineNetworkSize > 0 ? mineNetworkSize * k : 0;
             return false;
         }
