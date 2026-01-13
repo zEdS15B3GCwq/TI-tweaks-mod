@@ -1,28 +1,40 @@
-﻿using HarmonyLib;
+﻿using System.Reflection;
+using HarmonyLib;
 using UnityModManagerNet;
-using System.Reflection;
-using UnityEngine;
 
-namespace TILinearCostForMinesBeyondCapMod
+namespace TITweaksMod
 {
     internal static class Main
     {
-        internal static Harmony harmony;
-        internal static bool enabled;
-        internal static Settings settings;
-
-        // Default multiplier constant
-        internal const int DefaultLinearCostMultiplier = 5;
+        internal static bool enabled { get; private set; } = false;
+        internal static Harmony? Harmony { get; private set; }
+        internal static Settings? Settings { get; private set; }
+        internal static UnityModManager.ModEntry.ModLogger? Logger { get; private set; }
 
         private static bool Load(UnityModManager.ModEntry modEntry)
         {
-            settings = UnityModManager.ModSettings.Load<Settings>(modEntry) ?? new Settings();
+            Logger = modEntry.Logger;
+            Harmony = new Harmony(modEntry.Info.Id);
+            Settings = UnityModManager.ModSettings.Load<Settings>(modEntry) ?? new Settings();
 
-            harmony = new Harmony(modEntry.Info.Id);
+            string badHash = MethodHashUtil.VerifyAll(Logger, modEntry.Info.Id);
+            if (!string.IsNullOrEmpty(badHash))
+                Settings.dummyString = badHash;
 
-            modEntry.OnToggle = OnToggle;
-            modEntry.OnGUI = OnGUI;
+            try
+            {
+                Harmony.PatchAll(Assembly.GetExecutingAssembly());
+            }
+            catch
+            {
+                Logger.Error($"{modEntry.Info.Id}: Error during patching in Load().");
+                return false;
+            }
+
+            modEntry.OnGUI = SettingsUI.OnGUI;
+            modEntry.OnHideGUI = SettingsUI.OnHideGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
+            modEntry.OnToggle = OnToggle;
 
             return true;
         }
@@ -30,38 +42,19 @@ namespace TILinearCostForMinesBeyondCapMod
         private static bool OnToggle(UnityModManager.ModEntry modEntry, bool value)
         {
             enabled = value;
-
-            if (enabled)
-                harmony.PatchAll(Assembly.GetExecutingAssembly());
-            else
-                harmony.UnpatchAll(harmony.Id);
-
             return true;
-        }
-
-        private static void OnGUI(UnityModManager.ModEntry modEntry)
-        {
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Mine cost multiplier:");
-
-            // Slider always snaps to integers - no smooth dragging
-            float sliderValue = GUILayout.HorizontalSlider(settings.linearCostMultiplier, 1, 15, GUILayout.Width(200));
-            settings.linearCostMultiplier = Mathf.Clamp(Mathf.RoundToInt(sliderValue), 1, 15);
-
-            GUILayout.Label(settings.linearCostMultiplier.ToString());
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
         }
 
         private static void OnSaveGUI(UnityModManager.ModEntry modEntry)
         {
-            UnityModManager.ModSettings.Save(settings, modEntry);
+            UnityModManager.ModSettings.Save(Settings, modEntry);
         }
     }
 
-    public class Settings : UnityModManager.ModSettings
+    public sealed class Settings : UnityModManager.ModSettings
     {
-        // default multiplier
-        public int linearCostMultiplier = Main.DefaultLinearCostMultiplier;
+        public bool modPatchOnLoad = true;
+        public string dummyString = "";
+        public MiningPatches.Settings mineSettings = new MiningPatches.Settings();
     }
 }
