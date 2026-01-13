@@ -73,6 +73,7 @@
     <Compile Include="MethodHashUtil.cs" />
     <Compile Include="MineCostPatch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SettingsUI.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -29,8 +29,10 @@ namespace TITweaksMod
             if (settings.modPatchOnLoad)
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
 
+            SettingsUI.Init();
+
             modEntry.OnToggle = OnToggle;
-            modEntry.OnGUI = OnGUI;
+            modEntry.OnGUI = SettingsUI.OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
 
             return true;
@@ -40,31 +42,13 @@ namespace TITweaksMod
         {
             enabled = value;
 
-            if (enabled)
+            if (enabled && !settings.modPatchOnLoad)
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
-            else
+
+            if (!enabled && !settings.modUnPatchOnDisable)
                 harmony.UnpatchAll(harmony.Id);
 
             return true;
-        }
-
-        private static void OnGUI(UnityModManager.ModEntry modEntry)
-        {
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Mine cost multiplier:");
-
-            // Slider always snaps to integers - no smooth dragging
-            float sliderValue = GUILayout.HorizontalSlider(
-                settings.linearCostMultiplier,
-                1,
-                15,
-                GUILayout.Width(200)
-            );
-            settings.linearCostMultiplier = Mathf.Clamp(Mathf.RoundToInt(sliderValue), 1, 15);
-
-            GUILayout.Label(settings.linearCostMultiplier.ToString());
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
         }
 
         private static void OnSaveGUI(UnityModManager.ModEntry modEntry)
@@ -76,6 +60,7 @@ namespace TITweaksMod
     public class Settings : UnityModManager.ModSettings
     {
         public bool modPatchOnLoad = true;
+        public bool modUnPatchOnDisable = false;
         public bool tweakMineCostEnabled = true;
         public int linearCostMultiplier = 6;
     }
