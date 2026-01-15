@@ -212,13 +212,11 @@ namespace TITweaksMod.MiningPatches
                 "Player",
                 context.toggleStyle
             );
-            GUILayout.Space(5);
             settings.globalMineProductionMultiplierForHumans = GUILayout.Toggle(
                 settings.globalMineProductionMultiplierForHumans,
                 "Other Humans",
                 context.toggleStyle
             );
-            GUILayout.Space(5);
             settings.globalMineProductionMultiplierForAliens = GUILayout.Toggle(
                 settings.globalMineProductionMultiplierForAliens,
                 "Aliens",

@@ -56,5 +56,6 @@ namespace TITweaksMod
         public bool modPatchOnLoad = true;
         public string dummyString = "";
         public MiningPatches.Settings mineSettings = new MiningPatches.Settings();
+        public NationPatches.Settings nationSettings = new NationPatches.Settings();
     }
 }
