@@ -25,7 +25,7 @@ namespace TITweaksMod
             ),
         ];
 
-        internal static string VerifyAll(UnityModManager.ModEntry.ModLogger logger, string ModName)
+        internal static string VerifyAll(UnityModManager.ModEntry.ModLogger logger, string modID)
         {
             string result = string.Empty;
             foreach (MethodHashSpec spec in MethodHashes)
@@ -33,7 +33,7 @@ namespace TITweaksMod
                 string actual = Sha256Hex(spec.method);
                 if (string.IsNullOrEmpty(actual))
                 {
-                    logger?.Warning($"[{ModName}] Hash check: could not hash method: {spec.name}");
+                    logger?.Warning($"[{modID}] Hash check: could not hash method: {spec.name}");
                     continue;
                 }
 
@@ -46,7 +46,7 @@ namespace TITweaksMod
                 )
                 {
                     logger?.Warning(
-                        $"[{ModName}] Hash mismatch: game code changed; patch may need updating. "
+                        $"[{modID}] Hash mismatch: game code changed; patch may need updating. "
                             + $"Method={spec.name}, Expected={spec.expectedSha256Hex}, Actual={actual}"
                     );
                     if (string.IsNullOrEmpty(result))
@@ -72,7 +72,7 @@ namespace TITweaksMod
             }
         }
 
-        private readonly struct MethodHashSpec
+        private sealed class MethodHashSpec
         {
             internal MethodHashSpec(string name, MethodBase method, string expectedSha256Hex)
             {
@@ -81,9 +81,9 @@ namespace TITweaksMod
                 this.expectedSha256Hex = expectedSha256Hex;
             }
 
-            internal readonly string name;
-            internal readonly MethodBase method;
-            internal readonly string expectedSha256Hex;
+            internal string name { get; }
+            internal MethodBase method { get; }
+            internal string expectedSha256Hex { get; }
         }
     }
 }
