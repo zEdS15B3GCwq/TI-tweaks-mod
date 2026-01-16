@@ -30,7 +30,6 @@ namespace TITweaksMod
         {
             if (!TexturesValid())
             {
-                Main.Logger?.Log($"[TITweaks] Textures had to be recreated.");
                 BuildTextures();
                 return false;
             }
