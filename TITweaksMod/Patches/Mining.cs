@@ -1,4 +1,7 @@
-﻿using HarmonyLib;
+﻿/// <summary>
+/// Mining-related patches for Terra Invicta Tweaks Mod
+/// </summary>
+using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
 using UnityEngine;
 using UnityModManagerNet;
@@ -11,10 +14,15 @@ namespace TITweaksMod.MiningPatches
     )]
     internal static class MineMCCostPatch
     {
-        // Prefix needs to capture the original mineNetworkSize parameter, as it has a default value,
-        // and that's not passed to the Postfix as such. Postfix actually sees the last value of
-        // mineNetworkSize in the original method, which is not the same as the input value.
-        // This way the original method is unaffected and runs normally.
+        /// <summary>
+        /// Prefix patch for the TIFactionState.GetMissionControlRequirementFromMineNetwork() method that
+        /// captures the original mineNetworkSize parameter for use in the Postfix patch. This is necessary
+        /// as the parameter has a default value and is modified in the patched method, and Postfix only
+        /// receives the last value of the variable, not the original input value.
+        /// </summary>
+        /// <param name="__state">Harmony variable that preserves the original mineNetworkSize for Postfix.</param>
+        /// <param name="mineNetworkSize">Patched function parameter indicating number of mines.</param>
+        /// <returns></returns>
         static bool Prefix(out int __state, int mineNetworkSize)
         {
             __state = mineNetworkSize;
@@ -22,6 +30,15 @@ namespace TITweaksMod.MiningPatches
         }
 
         // Mine cost tweaks are applied in Postfix - this allows other mods to patch the same function.
+        /// <summary>
+        /// Postfix patch for the in-game TIFactionState.GetMissionControlRequirementFromMineNetwork() method
+        /// that calculates the MC cost of mines. This patch applies two optional tweaks based on user settings:
+        /// 1. Linear MC cost scaling - MC cost increases linearly per mine above a free limit.
+        /// 2. Global MC cost multiplier - a multiplier applied to the final MC cost.
+        /// </summary>
+        /// <param name="__instance">Active game faction, the owner of the mine network.</param>
+        /// <param name="__result">Tweaked total MC cost.</param>
+        /// <param name="__state">The original mine network size captured from the Prefix patch.</param>
         static void Postfix(TIFactionState __instance, ref int __result, int __state)
         {
             if (!Main.enabled || Main.Settings is null)
@@ -53,11 +70,16 @@ namespace TITweaksMod.MiningPatches
     )]
     internal static class MineProductivityPatch
     {
+        /// <summary>
+        /// Postfix patch for the in-game TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects()
+        /// method that applies a multiplier to the mining productivity of selected factions.
+        /// </summary>
+        /// <param name="__instance">Active game faction.</param>
+        /// <param name="__result">Tweaked mining productivity.</param>
         static void Postfix(TIFactionState __instance, ref float __result)
         {
             if (!Main.enabled || Main.Settings is null)
                 return; // keep original
-            //Main.Logger?.Log($"GetCurrentMiningMultiplierFromOrgsAndEffects() - {__instance}");
 
             MiningSettings settings = Main.Settings.mineSettings;
             if (settings.globalMineProductionMultiplier != 1.0f)
@@ -82,9 +104,28 @@ namespace TITweaksMod.MiningPatches
     [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetYearlyIncome))]
     internal static class RecalcMineIncomeIfNeededPatch
     {
+        /// <summary>
+        /// Indicates that mining income recalculation is needed.
+        /// This is set by the UI when the mine productivity settings are changed.
+        /// </summary>
         internal static bool needUpdate = false;
+
+        /// <summary>
+        /// Set of factions that need to recalculate the mining income.
+        /// </summary>
         static HashSet<TIFactionState>? dirtyFactions;
 
+        /// <summary>
+        /// The purpose of this Postfix patch is that the game only checks the mine productivity
+        /// multiplier on certain events (e.g. loading the game, org with mining output bonus is
+        /// activated or deactivated). This patch runs regularly when the game check a faction's
+        /// mining income, and if the multiplier settings have changed, it forces the game to
+        /// recalculate the mining income for that faction.
+        ///
+        /// The code to initiate recalculation is based on the game's own code when an org
+        ///  that affects mining income is activated/deactivated.
+        /// </summary>
+        /// <param name="__instance"></param>
         static void Postfix(TIFactionState __instance)
         {
             if (!Main.enabled || Main.Settings is null)
@@ -97,7 +138,6 @@ namespace TITweaksMod.MiningPatches
                     dirtyFactions = [.. GameStateManager.AllFactions()];
                 else
                     dirtyFactions.UnionWith(GameStateManager.AllFactions());
-                //Main.Logger?.Log("GetYearlyIncome - all dirty");
                 needUpdate = false;
             }
 
@@ -110,7 +150,6 @@ namespace TITweaksMod.MiningPatches
                         x.UpdateCurrentAnnualNetResourceIncomes();
                     }
                 );
-                //Main.Logger?.Log($"GetYearlyIncome - setting dirty {__instance}");
                 dirtyFactions.Remove(__instance);
             }
         }
@@ -136,6 +175,11 @@ namespace TITweaksMod.MiningPatches
         private static MineProdSettingsSnapshot MineProdSettingsAtGuiOpen;
         private static bool firstFrame = true;
 
+        /// <summary>
+        /// Sub-section for mining tweaks in the mod's settings UI in Unity Mod Manager.
+        /// </summary>
+        /// <param name="settings">Mining related mod settings.</param>
+        /// <param name="context">Context holding default UI styles and helper functions.</param>
         internal static void OnGUI(MiningSettings settings, in SettingsUIContext context)
         {
             if (firstFrame)
@@ -214,7 +258,7 @@ namespace TITweaksMod.MiningPatches
             {
                 newTargets |= TargetGroups.Player;
             }
-            GUILayout.Space(10);
+            GUILayout.Space(5);
             if (
                 GUILayout.Toggle(
                     (oldTargets & TargetGroups.Humans) != 0,
@@ -225,7 +269,7 @@ namespace TITweaksMod.MiningPatches
             {
                 newTargets |= TargetGroups.Humans;
             }
-            GUILayout.Space(10);
+            GUILayout.Space(5);
             if (
                 GUILayout.Toggle(
                     (oldTargets & TargetGroups.Aliens) != 0,

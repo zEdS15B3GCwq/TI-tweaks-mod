@@ -198,15 +198,21 @@ namespace TITweaksMod
     {
         internal static SettingsUIContext? Context { get; private set; }
 
+        /// <summary>
+        /// Handles drawing the mod settings UI via UMM, invoked at each redraw.
+        /// This method only draws the UI. Patch features define their own settings UI
+        /// sub-sections, which are included here.
+        /// </summary>
+        /// <param name="modEntry">UMM mod context</param>
         internal static void OnGUI(UnityModManager.ModEntry modEntry)
         {
             if (Main.Settings is null)
                 return;
 
-            //TextureStore.ValidateTextures();
             Context ??= new SettingsUIContext();
             Context.ValidateStyles();
 
+            /// Draw basic layout and title for the mod settings
             GUILayout.BeginVertical();
 
             GUILayout.Label($"{modEntry.Info.DisplayName} Mod Settings", UnityModManager.UI.h1);
@@ -218,6 +224,11 @@ namespace TITweaksMod
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        /// Called by UMM when the mod settings UI is closed/hidden.
+        /// Features define their own handlers, which are included here.
+        /// </summary>
+        /// <param name="modEntry">UMM mod context</param>
         internal static void OnHideGUI(UnityModManager.ModEntry modEntry)
         {
             if (Main.Settings is null)
