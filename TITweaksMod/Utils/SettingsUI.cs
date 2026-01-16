@@ -26,13 +26,15 @@ namespace TITweaksMod
                 && (ToolbarOffTexture is not null);
         }
 
-        internal static void ValidateTextures()
+        internal static bool ValidateTextures()
         {
             if (!TexturesValid())
             {
                 Main.Logger?.Log($"[TITweaks] Textures had to be recreated.");
+                BuildTextures();
+                return false;
             }
-            BuildTextures();
+            return true;
         }
 
         private static Texture2D CreateTexture(Color color)
@@ -71,7 +73,7 @@ namespace TITweaksMod
         {
             GroupStyle = new(GUI.skin.box) { padding = new RectOffset(10, 10, 10, 10) };
             SliderLayout = GUILayout.Width(200f);
-            WideSliderLayout = GUILayout.Width(350f);
+            WideSliderLayout = GUILayout.Width(500f);
             SliderLabelLayout = GUILayout.MinWidth(60f);
 
             // toggle button style: active - green, inactive - red
@@ -125,9 +127,39 @@ namespace TITweaksMod
             ToolbarStyle.border = new RectOffset(2, 2, 2, 2);
         }
 
-        internal GUIStyle ToggleStyle { get; }
-        internal GUIStyle GroupStyle { get; }
-        internal GUIStyle ToolbarStyle { get; }
+        internal void ValidateStyles()
+        {
+            if (!TextureStore.ValidateTextures())
+            {
+                ToggleStyle.onNormal.background = TextureStore.ToggleOnTexture;
+                ToggleStyle.onHover.background = TextureStore.ToggleOnTexture;
+                ToggleStyle.onActive.background = TextureStore.ToggleOnTexture;
+                ToggleStyle.onFocused.background = TextureStore.ToggleOnTexture;
+
+                ToggleStyle.normal.background = TextureStore.ToggleOffTexture;
+                ToggleStyle.hover.background = TextureStore.ToggleOffTexture;
+                ToggleStyle.active.background = TextureStore.ToggleOffTexture;
+                ToggleStyle.focused.background = TextureStore.ToggleOffTexture;
+
+                ToggleStyle.border = new RectOffset(2, 2, 2, 2);
+
+                ToolbarStyle.onNormal.background = TextureStore.ToolbarOnTexture;
+                ToolbarStyle.onHover.background = TextureStore.ToolbarOnTexture;
+                ToolbarStyle.onActive.background = TextureStore.ToolbarOnTexture;
+                ToolbarStyle.onFocused.background = TextureStore.ToolbarOnTexture;
+
+                ToolbarStyle.normal.background = TextureStore.ToolbarOffTexture;
+                ToolbarStyle.hover.background = TextureStore.ToolbarOffTexture;
+                ToolbarStyle.active.background = TextureStore.ToolbarOffTexture;
+                ToolbarStyle.focused.background = TextureStore.ToolbarOffTexture;
+
+                ToolbarStyle.border = new RectOffset(2, 2, 2, 2);
+            }
+        }
+
+        internal GUIStyle ToggleStyle { get; private set; }
+        internal GUIStyle GroupStyle { get; private set; }
+        internal GUIStyle ToolbarStyle { get; private set; }
         internal GUILayoutOption SliderLayout { get; }
         internal GUILayoutOption WideSliderLayout { get; }
         internal GUILayoutOption SliderLabelLayout { get; }
@@ -172,8 +204,9 @@ namespace TITweaksMod
             if (Main.Settings is null)
                 return;
 
-            TextureStore.ValidateTextures();
+            //TextureStore.ValidateTextures();
             Context ??= new SettingsUIContext();
+            Context.ValidateStyles();
 
             GUILayout.BeginVertical();
 
