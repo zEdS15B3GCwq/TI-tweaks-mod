@@ -7,34 +7,29 @@ namespace TITweaksMod
     {
         internal SettingsUIContext()
         {
-            toggleStyle = new GUIStyle(GUI.skin.toggle)
-            {
-                contentOffset = new Vector2(8f, 0),
-                padding = new RectOffset(5, 0, 0, 0),
-            };
+            toggleStyle = new GUIStyle(GUI.skin.button); // new GUIStyle(GUI.skin.toggle) { contentOffset = new Vector2(8f, 0) };
             groupStyle = new GUIStyle(GUI.skin.box) { padding = new RectOffset(10, 10, 10, 10) };
             sliderLayout = GUILayout.Width(200f);
-            sliderLabelLayout = GUILayout.Width(50f);
+            wideSliderLayout = GUILayout.Width(350f);
+            sliderLabelLayout = GUILayout.MinWidth(60f);
         }
 
         internal GUIStyle toggleStyle { get; }
         internal GUIStyle groupStyle { get; }
         internal GUILayoutOption sliderLayout { get; }
+        internal GUILayoutOption wideSliderLayout { get; }
         internal GUILayoutOption sliderLabelLayout { get; }
 
         internal float floatHorizontalSlider(
             in float oldValue,
             in float min,
             in float max,
-            GUILayoutOption? layout = null
+            params GUILayoutOption[] layout
         )
         {
-            float sliderValue = GUILayout.HorizontalSlider(
-                oldValue,
-                min,
-                max,
-                layout ?? sliderLayout
-            );
+            if (layout.Length == 0)
+                layout = [sliderLayout];
+            float sliderValue = GUILayout.HorizontalSlider(oldValue, min, max, layout);
             float newValue = Mathf.Clamp((float)Math.Round(sliderValue, 1), min, max);
             GUILayout.Label(newValue.ToString("0.0"), sliderLabelLayout);
             return newValue;
@@ -44,15 +39,12 @@ namespace TITweaksMod
             in int oldValue,
             in int min,
             in int max,
-            GUILayoutOption? layout = null
+            params GUILayoutOption[] layout
         )
         {
-            float sliderValue = GUILayout.HorizontalSlider(
-                oldValue,
-                min,
-                max,
-                layout ?? sliderLayout
-            );
+            if (layout.Length == 0)
+                layout = [sliderLayout];
+            float sliderValue = GUILayout.HorizontalSlider(oldValue, min, max, layout);
             int newValue = Mathf.Clamp(Mathf.RoundToInt(sliderValue), min, max);
             GUILayout.Label(newValue.ToString("0.0"), sliderLabelLayout);
             return newValue;
@@ -65,7 +57,7 @@ namespace TITweaksMod
 
         internal static void OnGUI(UnityModManager.ModEntry modEntry)
         {
-            if (Main.Settings == null)
+            if (Main.Settings is null)
                 return;
 
             context ??= new SettingsUIContext();
@@ -83,7 +75,7 @@ namespace TITweaksMod
 
         internal static void OnHideGUI(UnityModManager.ModEntry modEntry)
         {
-            if (Main.Settings == null)
+            if (Main.Settings is null)
                 return;
             MiningPatches.UI.OnHideGUI(Main.Settings.mineSettings);
         }
