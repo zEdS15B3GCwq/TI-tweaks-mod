@@ -11,17 +11,84 @@ namespace TITweaksMod
         // Expected hashes (populate from a known-good game version)
         private const string Hash_TIFactionState_GetMissionControlRequirementFromMineNetwork =
             "A9B38584F8457697061D08116BFB03B113492B6A1C39AB1B950A21C13F425943";
+        private const string Hash_TIFactionState_GetCurrentMiningMultiplierFromOrgsAndEffects = "";
+        private const string Hash_TIFactionState_GetYearlyIncome = "";
+        private const string Hash_TINationState_unrestRestState = "";
+        private const string Hash_TINationState_unrestRestState_unclamped = "";
+        private const string Hash_TINationState_cohesionRestState = "";
+        private const string Hash_TINationState_ClaimWillBeHostile = "";
+        private const string Hash_TINationState_CanImproveRelationsYet = "";
 
         private static readonly MethodHashSpec[] MethodHashes =
         [
             new MethodHashSpec(
-                "TIFactionState.GetMissionControlRequirementFromMineNetwork(int)",
+                "TIFactionState.GetMissionControlRequirementFromMineNetwork",
                 AccessTools.Method(
                     typeof(TIFactionState),
                     nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork),
                     [typeof(int)]
                 ),
                 Hash_TIFactionState_GetMissionControlRequirementFromMineNetwork
+            ),
+            new MethodHashSpec(
+                "TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects",
+                AccessTools.Method(
+                    typeof(TIFactionState),
+                    nameof(TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects),
+                    [typeof(FactionResource)]
+                ),
+                Hash_TIFactionState_GetCurrentMiningMultiplierFromOrgsAndEffects
+            ),
+            new MethodHashSpec(
+                "TIFactionState.GetYearlyIncome",
+                AccessTools.Method(
+                    typeof(TIFactionState),
+                    nameof(TIFactionState.GetYearlyIncome),
+                    [typeof(FactionResource), typeof(bool), typeof(bool), typeof(bool)]
+                ),
+                Hash_TIFactionState_GetYearlyIncome
+            ),
+            new MethodHashSpec(
+                "TINationState.unrestRestState.get",
+                AccessTools.PropertyGetter(
+                    typeof(TINationState),
+                    nameof(TINationState.unrestRestState)
+                ),
+                Hash_TINationState_unrestRestState
+            ),
+            new MethodHashSpec(
+                "TINationState.unrestRestState_unclamped.get",
+                AccessTools.PropertyGetter(
+                    typeof(TINationState),
+                    nameof(TINationState.unrestRestState_unclamped)
+                ),
+                Hash_TINationState_unrestRestState_unclamped
+            ),
+            new MethodHashSpec(
+                "TINationState.cohesionRestState.get",
+                AccessTools.PropertyGetter(
+                    typeof(TINationState),
+                    nameof(TINationState.cohesionRestState)
+                ),
+                Hash_TINationState_cohesionRestState
+            ),
+            new MethodHashSpec(
+                "TINationState.ClaimWillBeHostile",
+                AccessTools.Method(
+                    typeof(TINationState),
+                    nameof(TINationState.ClaimWillBeHostile),
+                    [typeof(TIRegionState)]
+                ),
+                Hash_TINationState_ClaimWillBeHostile
+            ),
+            new MethodHashSpec(
+                "TINationState.CanImproveRelationsYet",
+                AccessTools.Method(
+                    typeof(TINationState),
+                    nameof(TINationState.CanImproveRelationsYet),
+                    [typeof(TINationState)]
+                ),
+                Hash_TINationState_CanImproveRelationsYet
             ),
         ];
 
@@ -51,6 +118,8 @@ namespace TITweaksMod
                     );
                     if (string.IsNullOrEmpty(result))
                         result = actual;
+                    //else
+                    //    string.Concat(result, ";", actual);
                 }
             }
             return result;

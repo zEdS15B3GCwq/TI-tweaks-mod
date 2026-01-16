@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityModManagerNet;
-using static UnityEngine.GraphicsBuffer;
 
 namespace TITweaksMod.MiningPatches
 {
@@ -58,12 +58,12 @@ namespace TITweaksMod.MiningPatches
         {
             if (!Main.enabled || Main.Settings is null)
                 return; // keep original
-            Main.Logger?.Log($"GetCurrentMiningMultiplierFromOrgsAndEffects() - {__instance}");
+            //Main.Logger?.Log($"GetCurrentMiningMultiplierFromOrgsAndEffects() - {__instance}");
 
             Settings settings = Main.Settings.mineSettings;
             if (settings.globalMineProductionMultiplier != 1.0f)
             {
-                TargetGroups targets = settings.globalMineProductionMultiplierTargets;
+                TargetGroups targets = (TargetGroups)settings.globalMineProductionMultiplierTargets;
                 if (
                     (targets & TargetGroups.Player) != 0 && __instance.isActivePlayer
                     || (
@@ -98,7 +98,7 @@ namespace TITweaksMod.MiningPatches
                     dirtyFactions = [.. GameStateManager.AllFactions()];
                 else
                     dirtyFactions.UnionWith(GameStateManager.AllFactions());
-                Main.Logger?.Log("GetYearlyIncome - all dirty");
+                //Main.Logger?.Log("GetYearlyIncome - all dirty");
                 needUpdate = false;
             }
 
@@ -111,7 +111,7 @@ namespace TITweaksMod.MiningPatches
                         x.UpdateCurrentAnnualNetResourceIncomes();
                     }
                 );
-                Main.Logger?.Log($"GetYearlyIncome - setting dirty {__instance}");
+                //Main.Logger?.Log($"GetYearlyIncome - setting dirty {__instance}");
                 dirtyFactions.Remove(__instance);
             }
         }
@@ -128,28 +128,14 @@ namespace TITweaksMod.MiningPatches
 
     internal static class UI
     {
-        private struct MineProdSettingsSnapshot
+        private readonly struct MineProdSettingsSnapshot(float multiplier, int targets)
         {
-            internal float multiplier;
-            internal TargetGroups targets;
-
-            public MineProdSettingsSnapshot(float multiplier, TargetGroups targets)
-            {
-                this.multiplier = multiplier;
-                this.targets = targets;
-            }
-
-            public bool Equals(MineProdSettingsSnapshot other) =>
-                multiplier == other.multiplier && targets == other.targets;
-
-            public override bool Equals(object? obj) =>
-                obj is MineProdSettingsSnapshot other && Equals(other);
-
-            public override int GetHashCode() => HashCode.Combine(multiplier, targets);
+            internal readonly float Multiplier = multiplier;
+            internal readonly int Targets = targets;
         }
 
-        private static MineProdSettingsSnapshot? MineProdSettingsAtGuiOpen;
-        private static bool firstFrame = false;
+        private static MineProdSettingsSnapshot MineProdSettingsAtGuiOpen;
+        private static bool firstFrame = true;
 
         internal static void OnGUI(Settings settings, in SettingsUIContext context)
         {
@@ -163,7 +149,7 @@ namespace TITweaksMod.MiningPatches
             }
 
             // box group
-            GUILayout.BeginVertical(context.groupStyle);
+            GUILayout.BeginVertical(context.GroupStyle);
 
             // group label
             GUILayout.Label("Mining tweaks", UnityModManager.UI.h2);
@@ -175,8 +161,8 @@ namespace TITweaksMod.MiningPatches
             GUILayout.Space(15);
             settings.linearMineMCCostEnabled = GUILayout.Toggle(
                 settings.linearMineMCCostEnabled,
-                "Enable",
-                context.toggleStyle
+                settings.linearMineMCCostEnabled ? "on" : "off",
+                context.ToggleStyle
             );
             GUILayout.FlexibleSpace();
             GUILayout.Label("Cost per mine:");
@@ -184,10 +170,10 @@ namespace TITweaksMod.MiningPatches
                 settings.linearMCCostPerMine,
                 1f,
                 15f,
-                context.sliderLayout
+                context.SliderLayout
             );
             settings.linearMCCostPerMine = Mathf.Clamp(Mathf.RoundToInt(sliderValue), 1, 15);
-            GUILayout.Label(settings.linearMCCostPerMine.ToString(), context.sliderLabelLayout);
+            GUILayout.Label(settings.linearMCCostPerMine.ToString(), context.SliderLabelLayout);
             GUILayout.EndHorizontal();
 
             // TWEAK: global mine cost multiplier
@@ -199,7 +185,7 @@ namespace TITweaksMod.MiningPatches
                 settings.globalMineMCCostMultiplier,
                 0f,
                 2f,
-                context.sliderLayout
+                context.SliderLayout
             );
             settings.globalMineMCCostMultiplier = Mathf.Clamp(
                 (float)Math.Round(sliderValue, 1),
@@ -208,7 +194,7 @@ namespace TITweaksMod.MiningPatches
             );
             GUILayout.Label(
                 settings.globalMineMCCostMultiplier.ToString("0.0"),
-                context.sliderLabelLayout
+                context.SliderLabelLayout
             );
             GUILayout.EndHorizontal();
 
@@ -217,13 +203,13 @@ namespace TITweaksMod.MiningPatches
             GUILayout.BeginHorizontal();
             GUILayout.Label("3. Mine productivity multiplier (default: 1.0, change to enable):");
             GUILayout.Space(10);
-            TargetGroups oldTargets = settings.globalMineProductionMultiplierTargets;
+            TargetGroups oldTargets = (TargetGroups)settings.globalMineProductionMultiplierTargets;
             TargetGroups newTargets = TargetGroups.None;
             if (
                 GUILayout.Toggle(
                     (oldTargets & TargetGroups.Player) != 0,
                     "Player",
-                    context.toggleStyle
+                    context.ToggleStyle
                 )
             )
             {
@@ -234,7 +220,7 @@ namespace TITweaksMod.MiningPatches
                 GUILayout.Toggle(
                     (oldTargets & TargetGroups.Humans) != 0,
                     "Other Humans",
-                    context.toggleStyle
+                    context.ToggleStyle
                 )
             )
             {
@@ -245,20 +231,20 @@ namespace TITweaksMod.MiningPatches
                 GUILayout.Toggle(
                     (oldTargets & TargetGroups.Aliens) != 0,
                     "Aliens",
-                    context.toggleStyle
+                    context.ToggleStyle
                 )
             )
             {
                 newTargets |= TargetGroups.Aliens;
             }
-            settings.globalMineProductionMultiplierTargets = newTargets;
+            settings.globalMineProductionMultiplierTargets = (int)newTargets;
 
             GUILayout.FlexibleSpace();
             sliderValue = GUILayout.HorizontalSlider(
                 settings.globalMineProductionMultiplier,
                 0f,
                 10f,
-                context.sliderLayout
+                context.SliderLayout
             );
             settings.globalMineProductionMultiplier = Mathf.Clamp(
                 (float)Math.Round(sliderValue, 1),
@@ -267,7 +253,7 @@ namespace TITweaksMod.MiningPatches
             );
             GUILayout.Label(
                 settings.globalMineProductionMultiplier.ToString("0.0"),
-                context.sliderLabelLayout
+                context.SliderLabelLayout
             );
             GUILayout.EndHorizontal();
 
@@ -276,13 +262,13 @@ namespace TITweaksMod.MiningPatches
 
         internal static void OnHideGUI(Settings settings)
         {
-            if (MineProdSettingsAtGuiOpen is not null && !firstFrame)
+            if (!firstFrame)
             {
-                MineProdSettingsSnapshot newSnapshot = new(
-                    multiplier: settings.globalMineProductionMultiplier,
-                    targets: settings.globalMineProductionMultiplierTargets
-                );
-                if (!MineProdSettingsAtGuiOpen.Equals(newSnapshot))
+                if (
+                    MineProdSettingsAtGuiOpen.Multiplier != settings.globalMineProductionMultiplier
+                    || MineProdSettingsAtGuiOpen.Targets
+                        != settings.globalMineProductionMultiplierTargets
+                )
                     RecalcMineIncomeIfNeededPatch.needUpdate = true;
             }
             firstFrame = true;
@@ -295,6 +281,6 @@ namespace TITweaksMod.MiningPatches
         public int linearMCCostPerMine = 6;
         public float globalMineMCCostMultiplier = 1f;
         public float globalMineProductionMultiplier = 1f;
-        public TargetGroups globalMineProductionMultiplierTargets = TargetGroups.None;
+        public int globalMineProductionMultiplierTargets = 0; // (int)TargetGroups.None;
     }
 }
