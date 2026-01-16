@@ -2,6 +2,7 @@
 using PavonisInteractive.TerraInvicta;
 using UnityEngine;
 using UnityModManagerNet;
+using static UnityEngine.GraphicsBuffer;
 
 namespace TITweaksMod.MiningPatches
 {
@@ -24,7 +25,7 @@ namespace TITweaksMod.MiningPatches
         // Mine cost tweaks are applied in Postfix - this allows other mods to patch the same function.
         static void Postfix(TIFactionState __instance, ref int __result, int __state)
         {
-            if (!Main.enabled || Main.Settings == null)
+            if (!Main.enabled || Main.Settings is null)
                 return; // keep original
             Settings settings = Main.Settings.mineSettings;
 
@@ -55,24 +56,22 @@ namespace TITweaksMod.MiningPatches
     {
         static void Postfix(TIFactionState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings == null)
+            if (!Main.enabled || Main.Settings is null)
                 return; // keep original
             Main.Logger?.Log($"GetCurrentMiningMultiplierFromOrgsAndEffects() - {__instance}");
 
             Settings settings = Main.Settings.mineSettings;
             if (settings.globalMineProductionMultiplier != 1.0f)
             {
+                TargetGroups targets = settings.globalMineProductionMultiplierTargets;
                 if (
-                    (settings.globalMineProductionMultiplierForPlayer && __instance.isActivePlayer)
+                    (targets & TargetGroups.Player) != 0 && __instance.isActivePlayer
                     || (
-                        settings.globalMineProductionMultiplierForHumans
+                        (targets & TargetGroups.Humans) != 0
                         && __instance.IsActiveHumanFaction
                         && !__instance.isActivePlayer
                     )
-                    || (
-                        settings.globalMineProductionMultiplierForAliens
-                        && __instance.IsAlienFaction
-                    )
+                    || ((targets & TargetGroups.Aliens) != 0 && __instance.IsAlienFaction)
                 )
                 {
                     __result *= settings.globalMineProductionMultiplier;
@@ -85,24 +84,17 @@ namespace TITweaksMod.MiningPatches
     internal static class RecalcMineIncomeIfNeededPatch
     {
         internal static bool needUpdate = false;
-        private static bool firstRun = true;
         static HashSet<TIFactionState>? dirtyFactions;
 
         static void Postfix(TIFactionState __instance)
         {
-            if (!Main.enabled || Main.Settings == null)
+            if (!Main.enabled || Main.Settings is null)
                 return; // keep original
             Settings settings = Main.Settings.mineSettings;
 
-            if (firstRun)
-            {
-                needUpdate = false;
-                firstRun = false;
-            }
-
             if (needUpdate)
             {
-                if (dirtyFactions == null)
+                if (dirtyFactions is null)
                     dirtyFactions = [.. GameStateManager.AllFactions()];
                 else
                     dirtyFactions.UnionWith(GameStateManager.AllFactions());
@@ -125,14 +117,35 @@ namespace TITweaksMod.MiningPatches
         }
     }
 
+    [Flags]
+    public enum TargetGroups
+    {
+        None = 0,
+        Player = 1 << 0,
+        Humans = 1 << 1,
+        Aliens = 1 << 2,
+    }
+
     internal static class UI
     {
         private struct MineProdSettingsSnapshot
         {
             internal float multiplier;
-            internal bool playerEnabled;
-            internal bool humansEnabled;
-            internal bool aliensEnabled;
+            internal TargetGroups targets;
+
+            public MineProdSettingsSnapshot(float multiplier, TargetGroups targets)
+            {
+                this.multiplier = multiplier;
+                this.targets = targets;
+            }
+
+            public bool Equals(MineProdSettingsSnapshot other) =>
+                multiplier == other.multiplier && targets == other.targets;
+
+            public override bool Equals(object? obj) =>
+                obj is MineProdSettingsSnapshot other && Equals(other);
+
+            public override int GetHashCode() => HashCode.Combine(multiplier, targets);
         }
 
         private static MineProdSettingsSnapshot? MineProdSettingsAtGuiOpen;
@@ -140,15 +153,12 @@ namespace TITweaksMod.MiningPatches
 
         internal static void OnGUI(Settings settings, in SettingsUIContext context)
         {
-            if (firstFrame || MineProdSettingsAtGuiOpen == null)
+            if (firstFrame)
             {
-                MineProdSettingsAtGuiOpen = new MineProdSettingsSnapshot
-                {
-                    multiplier = settings.globalMineProductionMultiplier,
-                    playerEnabled = settings.globalMineProductionMultiplierForPlayer,
-                    humansEnabled = settings.globalMineProductionMultiplierForHumans,
-                    aliensEnabled = settings.globalMineProductionMultiplierForAliens,
-                };
+                MineProdSettingsAtGuiOpen = new(
+                    multiplier: settings.globalMineProductionMultiplier,
+                    targets: settings.globalMineProductionMultiplierTargets
+                );
                 firstFrame = false;
             }
 
@@ -206,22 +216,43 @@ namespace TITweaksMod.MiningPatches
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
             GUILayout.Label("3. Mine productivity multiplier (default: 1.0, change to enable):");
-            GUILayout.Space(15);
-            settings.globalMineProductionMultiplierForPlayer = GUILayout.Toggle(
-                settings.globalMineProductionMultiplierForPlayer,
-                "Player",
-                context.toggleStyle
-            );
-            settings.globalMineProductionMultiplierForHumans = GUILayout.Toggle(
-                settings.globalMineProductionMultiplierForHumans,
-                "Other Humans",
-                context.toggleStyle
-            );
-            settings.globalMineProductionMultiplierForAliens = GUILayout.Toggle(
-                settings.globalMineProductionMultiplierForAliens,
-                "Aliens",
-                context.toggleStyle
-            );
+            GUILayout.Space(10);
+            TargetGroups oldTargets = settings.globalMineProductionMultiplierTargets;
+            TargetGroups newTargets = TargetGroups.None;
+            if (
+                GUILayout.Toggle(
+                    (oldTargets & TargetGroups.Player) != 0,
+                    "Player",
+                    context.toggleStyle
+                )
+            )
+            {
+                newTargets |= TargetGroups.Player;
+            }
+            GUILayout.Space(10);
+            if (
+                GUILayout.Toggle(
+                    (oldTargets & TargetGroups.Humans) != 0,
+                    "Other Humans",
+                    context.toggleStyle
+                )
+            )
+            {
+                newTargets |= TargetGroups.Humans;
+            }
+            GUILayout.Space(10);
+            if (
+                GUILayout.Toggle(
+                    (oldTargets & TargetGroups.Aliens) != 0,
+                    "Aliens",
+                    context.toggleStyle
+                )
+            )
+            {
+                newTargets |= TargetGroups.Aliens;
+            }
+            settings.globalMineProductionMultiplierTargets = newTargets;
+
             GUILayout.FlexibleSpace();
             sliderValue = GUILayout.HorizontalSlider(
                 settings.globalMineProductionMultiplier,
@@ -245,22 +276,14 @@ namespace TITweaksMod.MiningPatches
 
         internal static void OnHideGUI(Settings settings)
         {
-            if (MineProdSettingsAtGuiOpen != null)
+            if (MineProdSettingsAtGuiOpen is not null && !firstFrame)
             {
-                if (
-                    MineProdSettingsAtGuiOpen.Value.multiplier
-                        != settings.globalMineProductionMultiplier
-                    || MineProdSettingsAtGuiOpen.Value.playerEnabled
-                        != settings.globalMineProductionMultiplierForPlayer
-                    || MineProdSettingsAtGuiOpen.Value.humansEnabled
-                        != settings.globalMineProductionMultiplierForHumans
-                    || MineProdSettingsAtGuiOpen.Value.aliensEnabled
-                        != settings.globalMineProductionMultiplierForAliens
-                )
-                {
-                    PeriodicallyCheckMineProductivitySettingsPatch.needUpdate = true;
-                }
-                MineProdSettingsAtGuiOpen = null;
+                MineProdSettingsSnapshot newSnapshot = new(
+                    multiplier: settings.globalMineProductionMultiplier,
+                    targets: settings.globalMineProductionMultiplierTargets
+                );
+                if (!MineProdSettingsAtGuiOpen.Equals(newSnapshot))
+                    RecalcMineIncomeIfNeededPatch.needUpdate = true;
             }
             firstFrame = true;
         }
@@ -272,8 +295,6 @@ namespace TITweaksMod.MiningPatches
         public int linearMCCostPerMine = 6;
         public float globalMineMCCostMultiplier = 1f;
         public float globalMineProductionMultiplier = 1f;
-        public bool globalMineProductionMultiplierForAliens = false;
-        public bool globalMineProductionMultiplierForHumans = false;
-        public bool globalMineProductionMultiplierForPlayer = false;
+        public TargetGroups globalMineProductionMultiplierTargets = TargetGroups.None;
     }
 }
