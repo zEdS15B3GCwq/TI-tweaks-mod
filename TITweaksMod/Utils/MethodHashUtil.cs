@@ -11,13 +11,20 @@ namespace TITweaksMod
         // Expected hashes (populate from a known-good game version)
         private const string Hash_TIFactionState_GetMissionControlRequirementFromMineNetwork =
             "A9B38584F8457697061D08116BFB03B113492B6A1C39AB1B950A21C13F425943";
-        private const string Hash_TIFactionState_GetCurrentMiningMultiplierFromOrgsAndEffects = "";
-        private const string Hash_TIFactionState_GetYearlyIncome = "";
-        private const string Hash_TINationState_unrestRestState = "";
-        private const string Hash_TINationState_unrestRestState_unclamped = "";
-        private const string Hash_TINationState_cohesionRestState = "";
-        private const string Hash_TINationState_ClaimWillBeHostile = "";
-        private const string Hash_TINationState_CanImproveRelationsYet = "";
+        private const string Hash_TIFactionState_GetCurrentMiningMultiplierFromOrgsAndEffects =
+            "95D8F4EA0FDE7033377E4DF96A7004F5BAF1EF6EE659B201A4DED1133B25D48A";
+        private const string Hash_TIFactionState_GetYearlyIncome =
+            "4FBC623C5B56F90B747EEECBC771B1573120084EE9720848EBE29A13F1F78A48";
+        private const string Hash_TINationState_unrestRestState =
+            "E9B0C762813A92D481529D21E8912F0C4FC519AE8B02AABB9D17AF56DFED1997";
+        private const string Hash_TINationState_unrestRestState_unclamped =
+            "642067BE7192756B6527648EFDC7891B91E176D58227AF60EF0120BF21003B4E";
+        private const string Hash_TINationState_cohesionRestState =
+            "ABFC5724C6A984234D1615CF6867DEF25027B02E88D2DA523CD0914CB88D094E";
+        private const string Hash_TINationState_ClaimWillBeHostile =
+            "03007EFA41B834EFFFD97911A233E9F000F46C658843F5055376465A7158DBAB";
+        private const string Hash_TINationState_CanImproveRelationsYet =
+            "CA69ECA1589FB4F5AC16F68E3E54C8F384331A83C55AD547A0B7D2C55D0A7230";
 
         private static readonly MethodHashSpec[] MethodHashes =
         [
@@ -118,8 +125,8 @@ namespace TITweaksMod
                     );
                     if (string.IsNullOrEmpty(result))
                         result = actual;
-                    //else
-                    //    string.Concat(result, ";", actual);
+                    else
+                        result = string.Concat(result, ";", actual);
                 }
             }
             return result;

@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
 using UnityEngine;
-using UnityEngine.Assertions.Must;
 using UnityModManagerNet;
 
 namespace TITweaksMod.MiningPatches
@@ -27,7 +26,7 @@ namespace TITweaksMod.MiningPatches
         {
             if (!Main.enabled || Main.Settings is null)
                 return; // keep original
-            Settings settings = Main.Settings.mineSettings;
+            MiningSettings settings = Main.Settings.mineSettings;
 
             // if linear cost is enabled, override original calculation and result
             if (settings.linearMineMCCostEnabled)
@@ -60,10 +59,10 @@ namespace TITweaksMod.MiningPatches
                 return; // keep original
             //Main.Logger?.Log($"GetCurrentMiningMultiplierFromOrgsAndEffects() - {__instance}");
 
-            Settings settings = Main.Settings.mineSettings;
+            MiningSettings settings = Main.Settings.mineSettings;
             if (settings.globalMineProductionMultiplier != 1.0f)
             {
-                TargetGroups targets = (TargetGroups)settings.globalMineProductionMultiplierTargets;
+                TargetGroups targets = settings.globalMineProductionMultiplierTargets;
                 if (
                     (targets & TargetGroups.Player) != 0 && __instance.isActivePlayer
                     || (
@@ -90,7 +89,7 @@ namespace TITweaksMod.MiningPatches
         {
             if (!Main.enabled || Main.Settings is null)
                 return; // keep original
-            Settings settings = Main.Settings.mineSettings;
+            MiningSettings settings = Main.Settings.mineSettings;
 
             if (needUpdate)
             {
@@ -128,16 +127,16 @@ namespace TITweaksMod.MiningPatches
 
     internal static class UI
     {
-        private readonly struct MineProdSettingsSnapshot(float multiplier, int targets)
+        private readonly struct MineProdSettingsSnapshot(float multiplier, TargetGroups targets)
         {
             internal readonly float Multiplier = multiplier;
-            internal readonly int Targets = targets;
+            internal readonly TargetGroups Targets = targets;
         }
 
         private static MineProdSettingsSnapshot MineProdSettingsAtGuiOpen;
         private static bool firstFrame = true;
 
-        internal static void OnGUI(Settings settings, in SettingsUIContext context)
+        internal static void OnGUI(MiningSettings settings, in SettingsUIContext context)
         {
             if (firstFrame)
             {
@@ -203,7 +202,7 @@ namespace TITweaksMod.MiningPatches
             GUILayout.BeginHorizontal();
             GUILayout.Label("3. Mine productivity multiplier (default: 1.0, change to enable):");
             GUILayout.Space(10);
-            TargetGroups oldTargets = (TargetGroups)settings.globalMineProductionMultiplierTargets;
+            TargetGroups oldTargets = settings.globalMineProductionMultiplierTargets;
             TargetGroups newTargets = TargetGroups.None;
             if (
                 GUILayout.Toggle(
@@ -237,7 +236,7 @@ namespace TITweaksMod.MiningPatches
             {
                 newTargets |= TargetGroups.Aliens;
             }
-            settings.globalMineProductionMultiplierTargets = (int)newTargets;
+            settings.globalMineProductionMultiplierTargets = newTargets;
 
             GUILayout.FlexibleSpace();
             sliderValue = GUILayout.HorizontalSlider(
@@ -260,7 +259,7 @@ namespace TITweaksMod.MiningPatches
             GUILayout.EndVertical();
         }
 
-        internal static void OnHideGUI(Settings settings)
+        internal static void OnHideGUI(MiningSettings settings)
         {
             if (!firstFrame)
             {
@@ -275,12 +274,12 @@ namespace TITweaksMod.MiningPatches
         }
     }
 
-    public class Settings : UnityModManager.ModSettings
+    public class MiningSettings : UnityModManager.ModSettings
     {
         public bool linearMineMCCostEnabled = false;
         public int linearMCCostPerMine = 6;
         public float globalMineMCCostMultiplier = 1f;
         public float globalMineProductionMultiplier = 1f;
-        public int globalMineProductionMultiplierTargets = 0; // (int)TargetGroups.None;
+        public TargetGroups globalMineProductionMultiplierTargets = TargetGroups.None;
     }
 }

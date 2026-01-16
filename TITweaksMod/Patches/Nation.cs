@@ -61,7 +61,7 @@ namespace TITweaksMod.NationPatches
             if (!Main.enabled || Main.Settings is null)
                 return;
 
-            Settings settings = Main.Settings.nationSettings;
+            NationSettings settings = Main.Settings.nationSettings;
 
             if (settings.unrestOffset != 0 && __instance.extant)
                 __result = Mathf.Clamp(__result + settings.unrestOffset, 0f, 10f);
@@ -77,7 +77,7 @@ namespace TITweaksMod.NationPatches
             if (!Main.enabled || Main.Settings is null)
                 return;
 
-            Settings settings = Main.Settings.nationSettings;
+            NationSettings settings = Main.Settings.nationSettings;
 
             if (settings.unrestOffset != 0 && __instance.extant)
                 __result = __result + settings.unrestOffset;
@@ -93,7 +93,7 @@ namespace TITweaksMod.NationPatches
             if (!Main.enabled || Main.Settings is null)
                 return;
 
-            Settings settings = Main.Settings.nationSettings;
+            NationSettings settings = Main.Settings.nationSettings;
 
             if (settings.cohesionOffset != 0 && __instance.extant)
                 __result = Mathf.Clamp(__result + settings.cohesionOffset, 0f, 10f);
@@ -107,12 +107,12 @@ namespace TITweaksMod.NationPatches
         {
             if (!Main.enabled || Main.Settings is null)
                 return;
-            Settings settings = Main.Settings.nationSettings;
+            NationSettings settings = Main.Settings.nationSettings;
 
             if (
-                settings.ignoreHostileClaims == (int)ExclusiveTargets.All
+                settings.ignoreHostileClaims == ExclusiveTargets.All
                 || (
-                    settings.ignoreHostileClaims == (int)ExclusiveTargets.PlayerOnly
+                    settings.ignoreHostileClaims == ExclusiveTargets.PlayerOnly
                     && __instance.executiveFaction.isActivePlayer
                 )
             )
@@ -131,12 +131,12 @@ namespace TITweaksMod.NationPatches
         {
             if (!Main.enabled || Main.Settings is null)
                 return;
-            Settings settings = Main.Settings.nationSettings;
+            NationSettings settings = Main.Settings.nationSettings;
 
             if (
-                settings.ignoreDiploCooldowns == (int)ExclusiveTargets.All
+                settings.ignoreDiploCooldowns == ExclusiveTargets.All
                 || (
-                    settings.ignoreDiploCooldowns == (int)ExclusiveTargets.PlayerOnly
+                    settings.ignoreDiploCooldowns == ExclusiveTargets.PlayerOnly
                     && __instance.executiveFaction.isActivePlayer
                 )
             )
@@ -155,7 +155,7 @@ namespace TITweaksMod.NationPatches
     {
         internal static string[] ignoreHostileClaimLabels = ["Off", "Player only", "All nations"];
 
-        internal static void OnGUI(Settings settings, in SettingsUIContext context)
+        internal static void OnGUI(NationSettings settings, in SettingsUIContext context)
         {
             // group box
             GUILayout.BeginVertical(context.GroupStyle);
@@ -194,11 +194,12 @@ namespace TITweaksMod.NationPatches
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("3. Ignore claim hostility (default: off):");
                 GUILayout.Space(10);
-                settings.ignoreHostileClaims = GUILayout.Toolbar(
-                    settings.ignoreHostileClaims,
-                    ignoreHostileClaimLabels,
-                    context.ToolbarStyle
-                );
+                settings.ignoreHostileClaims = (ExclusiveTargets)
+                    GUILayout.Toolbar(
+                        (int)settings.ignoreHostileClaims,
+                        ignoreHostileClaimLabels,
+                        context.ToolbarStyle
+                    );
                 GUILayout.EndHorizontal();
 
                 // TWEAK: ignore diplomatic cooldowns
@@ -206,11 +207,12 @@ namespace TITweaksMod.NationPatches
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("4. Ignore diplomatic cooldowns (default: off):");
                 GUILayout.Space(10);
-                settings.ignoreDiploCooldowns = GUILayout.Toolbar(
-                    settings.ignoreDiploCooldowns,
-                    ignoreHostileClaimLabels,
-                    context.ToolbarStyle
-                );
+                settings.ignoreDiploCooldowns = (ExclusiveTargets)
+                    GUILayout.Toolbar(
+                        (int)settings.ignoreDiploCooldowns,
+                        ignoreHostileClaimLabels,
+                        context.ToolbarStyle
+                    );
                 GUILayout.EndHorizontal();
             }
 
@@ -218,11 +220,11 @@ namespace TITweaksMod.NationPatches
         }
     }
 
-    public class Settings : UnityModManager.ModSettings
+    public class NationSettings : UnityModManager.ModSettings
     {
         public float unrestOffset = 0f;
         public float cohesionOffset = 0f;
-        public int ignoreHostileClaims = 0; // (int)ExclusiveTargets.Off;
-        public int ignoreDiploCooldowns = 0; // (int)ExclusiveTargets.Off;
+        public ExclusiveTargets ignoreHostileClaims = ExclusiveTargets.Off;
+        public ExclusiveTargets ignoreDiploCooldowns = ExclusiveTargets.Off;
     }
 }

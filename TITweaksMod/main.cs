@@ -19,7 +19,7 @@ namespace TITweaksMod
 
             string badHash = MethodHashUtil.VerifyAll(Logger, modEntry.Info.Id);
             if (!string.IsNullOrEmpty(badHash))
-                Settings.dummyString = badHash;
+                Settings.correctHashes = badHash;
 
             try
             {
@@ -53,9 +53,9 @@ namespace TITweaksMod
 
     public sealed class Settings : UnityModManager.ModSettings
     {
-        public bool modPatchOnLoad = true;
-        public string dummyString = "";
-        public MiningPatches.Settings mineSettings = new MiningPatches.Settings();
-        public NationPatches.Settings nationSettings = new NationPatches.Settings();
+        public string correctHashes = "";
+
+        public MiningPatches.MiningSettings mineSettings = new();
+        public NationPatches.NationSettings nationSettings = new();
     }
 }
