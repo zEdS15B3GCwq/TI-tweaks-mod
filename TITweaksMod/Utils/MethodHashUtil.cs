@@ -8,7 +8,7 @@ namespace TITweaksMod
 {
     internal static class MethodHashUtil
     {
-        // Expected hashes (populate from a known-good game version)
+        // Expected hashes (populated from game version 1.0.26)
         private const string Hash_TIFactionState_GetMissionControlRequirementFromMineNetwork =
             "A9B38584F8457697061D08116BFB03B113492B6A1C39AB1B950A21C13F425943";
         private const string Hash_TIFactionState_GetCurrentMiningMultiplierFromOrgsAndEffects =
@@ -25,7 +25,8 @@ namespace TITweaksMod
             "03007EFA41B834EFFFD97911A233E9F000F46C658843F5055376465A7158DBAB";
         private const string Hash_TINationState_CanImproveRelationsYet =
             "CA69ECA1589FB4F5AC16F68E3E54C8F384331A83C55AD547A0B7D2C55D0A7230";
-        private const string Hash_TINationState_MyClaimOnOtherCapital = "";
+        private const string Hash_TINationState_MyClaimOnOtherCapital =
+            "AD34D3783151FE787A4453A7855BC5B9A5F53120D3E0589B862956602B005DE6";
 
         private static readonly MethodHashSpec[] MethodHashes =
         [
@@ -114,24 +115,24 @@ namespace TITweaksMod
             string result = string.Empty;
             foreach (MethodHashSpec spec in MethodHashes)
             {
-                string actual = Sha256Hex(spec.method);
+                string actual = Sha256Hex(spec.Method);
                 if (string.IsNullOrEmpty(actual))
                 {
-                    logger?.Warning($"[{modID}] Hash check: could not hash method: {spec.name}");
+                    logger?.Warning($"[{modID}] Hash check: could not hash method: {spec.Name}");
                     continue;
                 }
 
                 if (
                     !string.Equals(
                         actual,
-                        spec.expectedSha256Hex,
+                        spec.ExpectedSha256Hex,
                         StringComparison.OrdinalIgnoreCase
                     )
                 )
                 {
                     logger?.Warning(
                         $"[{modID}] Hash mismatch: game code changed; patch may need updating. "
-                            + $"Method={spec.name}, Expected={spec.expectedSha256Hex}, Actual={actual}"
+                            + $"Method={spec.Name}, Expected={spec.ExpectedSha256Hex}, Actual={actual}"
                     );
                     if (string.IsNullOrEmpty(result))
                         result = actual;
@@ -162,14 +163,14 @@ namespace TITweaksMod
         {
             internal MethodHashSpec(string name, MethodBase method, string expectedSha256Hex)
             {
-                this.name = name;
-                this.method = method;
-                this.expectedSha256Hex = expectedSha256Hex;
+                Name = name;
+                Method = method;
+                ExpectedSha256Hex = expectedSha256Hex;
             }
 
-            internal string name { get; }
-            internal MethodBase method { get; }
-            internal string expectedSha256Hex { get; }
+            internal string Name { get; }
+            internal MethodBase Method { get; }
+            internal string ExpectedSha256Hex { get; }
         }
     }
 }
