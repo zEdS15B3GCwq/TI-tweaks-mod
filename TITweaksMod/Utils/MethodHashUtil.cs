@@ -25,6 +25,7 @@ namespace TITweaksMod
             "03007EFA41B834EFFFD97911A233E9F000F46C658843F5055376465A7158DBAB";
         private const string Hash_TINationState_CanImproveRelationsYet =
             "CA69ECA1589FB4F5AC16F68E3E54C8F384331A83C55AD547A0B7D2C55D0A7230";
+        private const string Hash_TINationState_MyClaimOnOtherCapital = "";
 
         private static readonly MethodHashSpec[] MethodHashes =
         [
@@ -96,6 +97,15 @@ namespace TITweaksMod
                     [typeof(TINationState)]
                 ),
                 Hash_TINationState_CanImproveRelationsYet
+            ),
+            new MethodHashSpec(
+                "TINationState.MyClaimOnOtherCapital",
+                AccessTools.Method(
+                    typeof(TINationState),
+                    nameof(TINationState.MyClaimOnOtherCapital),
+                    [typeof(TINationState), typeof(bool), typeof(bool)]
+                ),
+                Hash_TINationState_MyClaimOnOtherCapital
             ),
         ];
 
