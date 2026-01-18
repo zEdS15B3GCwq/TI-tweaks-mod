@@ -121,7 +121,7 @@ namespace TITweaksMod.CombatPatches
             GUILayout.BeginVertical(context.GroupStyle);
             {
                 // group label
-                GUILayout.Label("Combat / autoresolve tweaks", UnityModManager.UI.h2);
+                GUILayout.Label("Combat / Autoresolve", UnityModManager.UI.h2);
 
                 // TWEAK: disable combat damage to player ships
                 GUILayout.Space(15);
