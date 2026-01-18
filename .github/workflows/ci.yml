@@ -25,7 +25,11 @@ jobs:
 
   precommit:
     name: pre-commit (all files)
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.14"]
+        os: [ubuntu-latest]
     steps:
       - name: checkout code
         uses: actions/checkout@v6
@@ -45,7 +49,7 @@ jobs:
           restore-keys: |
             prek-${{ matrix.os }}-${{ matrix.python-version }}
 
-      - name: run prek (on PR)
+      - name: run prek (PR)
         if: github.event_name == 'pull_request'
         run: |
           uvx --python ${{ matrix.python-version }} \
@@ -55,7 +59,7 @@ jobs:
             --color=always
         shell: bash
 
-      - name: run prek (on push to main)
+      - name: run prek (push to main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           uvx --python ${{ matrix.python-version }} \
@@ -83,21 +87,21 @@ jobs:
             const owner = "zEdS15B3GCwq";
             const repo = "TI-tweaks-mod-libs";
 
-            # const refData = await github.rest.git.getRef({ owner, repo, ref: "heads/main" });
-            # const treeSha = refData.data.object.sha;
-            # const tree = await github.rest.git.getTree({ owner, repo, tree_sha: treeSha, recursive: "1" });
-            # const archives = tree.data.tree
-            #   .filter(item => item.type === "blob" && /^Bundles\/TITweaksMod.*\.7z$/i.test(item.path));
-            # if (archives.length === 0) {
-            #   core.setFailed("No matching TITweaksMod*.7z files found in private repo.");
-            #   return;
-            # }
-            # const matrix = {
-            #   include: archives.map(item => ({
-            #     archive_path: item.path,
-            #     archive_name: item.path.split("/").pop()
-            #   }))
-            # };
+            // const refData = await github.rest.git.getRef({ owner, repo, ref: "heads/main" });
+            // const treeSha = refData.data.object.sha;
+            // const tree = await github.rest.git.getTree({ owner, repo, tree_sha: treeSha, recursive: "1" });
+            // const archives = tree.data.tree
+            //   .filter(item => item.type === "blob" && /^Bundles\/TITweaksMod.*\.7z$/i.test(item.path));
+            // if (archives.length === 0) {
+            //   core.setFailed("No matching TITweaksMod*.7z files found in private repo.");
+            //   return;
+            // }
+            // const matrix = {
+            //   include: archives.map(item => ({
+            //     archive_path: item.path,
+            //     archive_name: item.path.split("/").pop()
+            //   }))
+            // };
 
             const path = "Bundles";
             const res = await github.rest.repos.getContent({ owner, repo, path });
@@ -118,7 +122,7 @@ jobs:
             core.setOutput("matrix", JSON.stringify(matrix));
 
   build_matrix:
-    name: "build (libs: ${{ matrix.archive_name }})"
+    name: build
     runs-on: windows-latest
     needs: [precommit, prep_libs]
     environment: ci

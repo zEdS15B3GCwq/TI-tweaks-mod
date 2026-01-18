@@ -70,7 +70,7 @@ jobs:
   precommit:
     name: pre-commit (changed files)
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     if: |
       needs.prepare.outputs.is_fork == 'false' &&
       needs.prepare.outputs.has_files == 'true' &&
