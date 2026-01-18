@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: discover .7z files
         id: discover
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
           # github-token: ${{ secrets.TEST_TOKEN }}
@@ -121,7 +121,7 @@ jobs:
           persist-credentials: false
 
       - name: download libs archive
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           # github-token: ${{ secrets.TEST_TOKEN }}
           github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
