@@ -179,7 +179,6 @@ jobs:
             fs.writeFileSync(outputPath, buffer);
             core.info(`Downloaded ${archiveName} to ${outputPath}`);
         env:
-          ARCHIVE_PATH: ${{ matrix.archive_path }}
           ARCHIVE_NAME: ${{ matrix.archive_name }}
 
       - name: ensure 7-Zip available
@@ -203,100 +202,12 @@ jobs:
       - name: setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: restore NuGet packages
+        shell: pwsh
+        run: |
+          msbuild "TITweaksMod\TITweaksMod.csproj" /t:Restore /p:Configuration=Release /p:Platform="Any CPU"
+
       - name: build (net48)
         shell: pwsh
         run: |
           msbuild "TITweaksMod\TITweaksMod.csproj" /t:Build /p:Configuration=Release /p:Platform="Any CPU"
-
-  # test:
-  #   name: tests
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       python-version: ["3.12", "3.13", "3.14"]
-  #       os: [ubuntu-latest, windows-latest, macos-latest]
-  #   steps:
-  #     - name: checkout code
-  #       uses: actions/checkout@v6
-  #       with:
-  #         persist-credentials: false
-
-  #     - name: install uv
-  #       uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867  # v7.1.6
-  #       with:
-  #         enable-cache: true
-
-  #     - name: run tests with nox
-  #       run: uvx nox -s tests_parallel --force-python ${{ matrix.python-version }}
-  #       shell: bash
-
-  # type_check:
-  #   name: typing
-  #   runs-on: ${{ matrix.os }}
-  #   strategy: &default-strategy
-  #     fail-fast: false
-  #     matrix:
-  #       python-version: ["3.14"]
-  #       os: [ubuntu-latest]
-  #   steps:
-  #     - name: checkout code
-  #       uses: actions/checkout@v6
-  #       with:
-  #         persist-credentials: false
-
-  #     - name: install uv
-  #       uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867  # v7.1.6
-  #       with:
-  #         enable-cache: true
-
-  #     - name: run mypy check with nox
-  #       run: uvx nox -s type_check --force-python ${{ matrix.python-version }}
-  #       shell: bash
-
-  # installation:
-  #   name: installation
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       python-version: ["3.12", "3.13", "3.14"]
-  #       os: [ubuntu-latest, windows-latest, macos-latest]
-  #   steps:
-  #     - name: checkout code
-  #       uses: actions/checkout@v6
-  #       with:
-  #         persist-credentials: false
-
-  #     - name: install uv
-  #       uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867  # v7.1.6
-  #       with:
-  #         enable-cache: true
-
-  #     # this nox session uses venv as backend, cannot install python
-  #     - name: install python
-  #       run: uv python install ${{ matrix.python-version }}
-  #       shell: bash
-
-  #     - name: run mypy check with nox
-  #       run: uvx nox -s install_test --force-python ${{ matrix.python-version }}
-  #       shell: bash
-
-  # build_docs:
-  #   name: build documentation
-  #   runs-on: ${{ matrix.os }}
-  #   strategy: *default-strategy
-  #   steps:
-  #     - name: checkout code
-  #       uses: actions/checkout@v6
-  #       with:
-  #         persist-credentials: false
-
-  #     - name: install uv
-  #       uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867  # v7.1.6
-  #       with:
-  #         enable-cache: true
-
-  #     - name: run mypy check with nox
-  #       run: uvx nox -s docs --force-python ${{ matrix.python-version }}
-  #       shell: bash
