@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
 
       - name: install uv
-        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867  # v7.1.6
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b  # v7.2.0
         with:
           enable-cache: true
 
@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: discover .7z files
         id: discover
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
           script: |
@@ -135,7 +135,7 @@ jobs:
           persist-credentials: false
 
       - name: download libs archive
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
           script: |
