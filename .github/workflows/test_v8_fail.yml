@@ -1,7 +1,8 @@
 name: Test Workflow
 
-on:
-  workflow_dispatch:
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    branches: ["main"]
 
 jobs:
   run_script:
