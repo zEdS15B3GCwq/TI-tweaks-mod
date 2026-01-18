@@ -1,0 +1,213 @@
+---
+name: CI
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+# Cancel tests if a new commit is pushed to the same PR
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{
+      github.event_name == 'pull_request' && 'pr' || 'push'
+    }}-${{
+      github.event.pull_request.number || github.ref
+    }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+
+  precommit:
+    name: pre-commit (all files)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.14"]
+        os: [ubuntu-latest]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: install uv
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867  # v7.1.6
+        with:
+          enable-cache: true
+
+      - name: save prek cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/prek
+          key: prek-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}  # yamllint disable-line rule:line-length
+          restore-keys: |
+            prek-${{ matrix.os }}-${{ matrix.python-version }}
+
+      - name: run prek (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          uvx --python ${{ matrix.python-version }} \
+            prek run \
+            --all-files \
+            --show-diff-on-failure \
+            --color=always
+        shell: bash
+
+      - name: run prek (push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          uvx --python ${{ matrix.python-version }} \
+            prek run \
+            --all-files \
+            --show-diff-on-failure \
+            --color=always
+        shell: bash
+        env:
+          SKIP: no-commit-to-branch
+
+  prep_libs:
+    name: prepare libs matrix
+    runs-on: ubuntu-latest
+    environment: ci
+    outputs:
+      matrix: ${{ steps.discover.outputs.matrix }}
+    steps:
+      - name: discover .7z files
+        id: discover
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
+          script: |
+            const owner = "zEdS15B3GCwq";
+            const repo = "TI-tweaks-mod-libs";
+
+            // const refData = await github.rest.git.getRef({ owner, repo, ref: "heads/main" });
+            // const treeSha = refData.data.object.sha;
+            // const tree = await github.rest.git.getTree({ owner, repo, tree_sha: treeSha, recursive: "1" });
+            // const archives = tree.data.tree
+            //   .filter(item => item.type === "blob" && /^Bundles\/TITweaksMod.*\.7z$/i.test(item.path));
+            // if (archives.length === 0) {
+            //   core.setFailed("No matching TITweaksMod*.7z files found in private repo.");
+            //   return;
+            // }
+            // const matrix = {
+            //   include: archives.map(item => ({
+            //     archive_path: item.path,
+            //     archive_name: item.path.split("/").pop()
+            //   }))
+            // };
+
+            const path = "Bundles";
+            const res = await github.rest.repos.getContent({ owner, repo, path });
+            const entries = Array.isArray(res.data) ? res.data : [];
+            const archives = entries
+              .filter(item => item.type === "file" && /^TITweaksMod.*\.7z$/i.test(item.name))
+              .map(item => ({ path: item.path, name: item.name }));
+            if (archives.length === 0) {
+              core.setFailed("No matching TITweaksMod*.7z files found in private repo.");
+              return;
+            }
+            const matrix = {
+              include: archives.map(item => ({
+                archive_name: item.name
+              }))
+            };
+            core.setOutput("matrix", JSON.stringify(matrix));
+
+  build_matrix:
+    name: build
+    runs-on: windows-latest
+    needs: [precommit, prep_libs]
+    environment: ci
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prep_libs.outputs.matrix) }}
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: download libs archive
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+            const owner = "zEdS15B3GCwq";
+            const repo = "TI-tweaks-mod-libs";
+            const archiveName = process.env.ARCHIVE_NAME;
+            const archiveWebPath = path.posix.join("Bundles", archiveName);
+            const outputDir = path.join(process.env.GITHUB_WORKSPACE);
+            const outputPath = path.join(outputDir, archiveName);
+
+            if (!archiveName) {
+              core.setFailed("Missing archive_name from matrix.");
+              return;
+            }
+
+            const meta = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path: archiveWebPath
+            });
+
+            if (Array.isArray(meta.data) || !meta.data.sha) {
+              core.setFailed(`Expected file at ${archiveWebPath}, but got a directory or missing sha.`);
+              return;
+            }
+
+            const blob = await github.rest.git.getBlob({
+              owner,
+              repo,
+              file_sha: meta.data.sha
+            });
+
+            if (!blob.data || !blob.data.content) {
+              core.setFailed("Blob content missing from GitHub API response.");
+              return;
+            }
+
+            const buffer = Buffer.from(blob.data.content, "base64");
+            fs.writeFileSync(outputPath, buffer);
+            core.info(`Downloaded ${archiveName} to ${outputPath}`);
+        env:
+          ARCHIVE_NAME: ${{ matrix.archive_name }}
+
+      - name: ensure 7-Zip available
+        shell: pwsh
+        run: |
+          $sevenZip = "C:\Program Files\7-Zip\7z.exe"
+          if (-not (Test-Path $sevenZip)) {
+            choco install 7zip -y
+          }
+
+      - name: extract libs archive
+        shell: pwsh
+        run: |
+          $sevenZip = "C:\Program Files\7-Zip\7z.exe"
+          if (-not (Test-Path $sevenZip)) {
+            $sevenZip = "7z"
+          }
+          $archive = Join-Path $env:GITHUB_WORKSPACE ${{ matrix.archive_name }}
+          & $sevenZip x $archive -o"$env:GITHUB_WORKSPACE" -y
+
+      - name: setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: restore NuGet packages
+        shell: pwsh
+        run: |
+          msbuild "TITweaksMod\TITweaksMod.csproj" /t:Restore /p:Configuration=Release /p:Platform="Any CPU"
+
+      - name: build (net48)
+        shell: pwsh
+        run: |
+          msbuild "TITweaksMod\TITweaksMod.csproj" /t:Build /p:Configuration=Release /p:Platform="Any CPU"

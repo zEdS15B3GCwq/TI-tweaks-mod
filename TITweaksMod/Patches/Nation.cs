@@ -36,7 +36,7 @@ using UnityModManagerNet;
 /// regions where they cannot join a federation, but can unify when both nations are controlled.
 ///
 /// The democracy score difference limit can be set in TIGlobalConfig.json, so there is not reason to
-/// patch it in the code. The patches below allow ignoring hostile claims from either source.
+/// patch just that in game code. The patches below allow ignoring hostile claims from either source.
 ///
 /// Relevant in-game methods:
 ///     - TINationState.ClaimWillBeHostile: true if claim is not hostile due to democracy or innate hostility.
@@ -46,9 +46,11 @@ using UnityModManagerNet;
 ///     - TINationState.eligibleUnifications (getter): list of allowed unifications, uses ClaimWillBeHostile. (not patched)
 ///     - TINationState.CanUnifyFeedback: textual details about all factors affecting unification (not patched)
 ///     - TINationState.CanImproveRelationsYet: true if relations not on cooldown, blocks diplomatic actions.
-///                                             Unsure if this only affects cooldown or also federation/alliance duration
-///                                             requirements.
-///                                             Patched to always return true.
+///                                             Ignores unification requirements for federation / alliance duration
+///                                             if patched to return true.
+///     - TINationState.MyClaimOnOtherCapital: true if this nation has a claim on the capital of another nation.
+///                                            If patched to always return true, this allows unification with all
+///                                            federation members.
 /// </summary>
 namespace TITweaksMod.NationPatches
 {
@@ -123,11 +125,7 @@ namespace TITweaksMod.NationPatches
     [HarmonyPatch(typeof(TINationState), nameof(TINationState.CanImproveRelationsYet))]
     internal static class TINationState_CanImproveRelationsYet_Patch
     {
-        internal static void Postfix(
-            TINationState __instance,
-            TINationState nation,
-            ref bool __result
-        )
+        internal static void Postfix(TINationState __instance, ref bool __result)
         {
             if (!Main.enabled || Main.Settings is null)
                 return;
@@ -144,6 +142,26 @@ namespace TITweaksMod.NationPatches
         }
     }
 
+    [HarmonyPatch(typeof(TINationState), nameof(TINationState.MyClaimOnOtherCapital))]
+    internal static class TINationState_MyClaimOnOtherCapital_Patch
+    {
+        internal static void Postfix(TINationState __instance, ref bool __result)
+        {
+            if (!Main.enabled || Main.Settings is null)
+                return;
+            NationSettings settings = Main.Settings.nationSettings;
+
+            if (
+                settings.claimAllCapitals == ExclusiveTargets.All
+                || (
+                    settings.claimAllCapitals == ExclusiveTargets.PlayerOnly
+                    && __instance.executiveFaction.isActivePlayer
+                )
+            )
+                __result = true;
+        }
+    }
+
     public enum ExclusiveTargets
     {
         Off = 0,
@@ -153,7 +171,7 @@ namespace TITweaksMod.NationPatches
 
     internal static class UI
     {
-        internal static string[] ignoreHostileClaimLabels = ["Off", "Player only", "All nations"];
+        internal static string[] exclusiveTargetLabels = ["Off", "Player only", "All nations"];
 
         internal static void OnGUI(NationSettings settings, in SettingsUIContext context)
         {
@@ -192,12 +210,12 @@ namespace TITweaksMod.NationPatches
                 // TWEAK: ignore hostile claims
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("3. Ignore claim hostility (default: off):");
+                GUILayout.Label("3. All claims are non-hostile (default: off):");
                 GUILayout.Space(10);
                 settings.ignoreHostileClaims = (ExclusiveTargets)
                     GUILayout.Toolbar(
                         (int)settings.ignoreHostileClaims,
-                        ignoreHostileClaimLabels,
+                        exclusiveTargetLabels,
                         context.ToolbarStyle
                     );
                 GUILayout.EndHorizontal();
@@ -210,7 +228,20 @@ namespace TITweaksMod.NationPatches
                 settings.ignoreDiploCooldowns = (ExclusiveTargets)
                     GUILayout.Toolbar(
                         (int)settings.ignoreDiploCooldowns,
-                        ignoreHostileClaimLabels,
+                        exclusiveTargetLabels,
+                        context.ToolbarStyle
+                    );
+                GUILayout.EndHorizontal();
+
+                // TWEAK: claim on all capitals
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("5. Claim on all capitals (default: off):");
+                GUILayout.Space(10);
+                settings.claimAllCapitals = (ExclusiveTargets)
+                    GUILayout.Toolbar(
+                        (int)settings.claimAllCapitals,
+                        exclusiveTargetLabels,
                         context.ToolbarStyle
                     );
                 GUILayout.EndHorizontal();
@@ -226,5 +257,6 @@ namespace TITweaksMod.NationPatches
         public float cohesionOffset = 0f;
         public ExclusiveTargets ignoreHostileClaims = ExclusiveTargets.Off;
         public ExclusiveTargets ignoreDiploCooldowns = ExclusiveTargets.Off;
+        public ExclusiveTargets claimAllCapitals = ExclusiveTargets.Off;
     }
 }
