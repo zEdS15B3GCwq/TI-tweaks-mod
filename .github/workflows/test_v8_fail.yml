@@ -1,0 +1,16 @@
+name: Test Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_script:
+    runs-on: ubuntu-latest
+    environment: ci
+    steps:
+      - name: v8 fails with fine-grained PAT test
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
+          script: |
+            console.log("This is a test script running in GitHub Actions.");

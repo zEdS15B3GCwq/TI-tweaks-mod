@@ -8,10 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ci
     steps:
-      - name: v8 fails with fine-grained PAT test
+      - name: v8 succeeds with classic token test
         uses: actions/github-script@v8
         with:
-          # github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
           github-token: ${{ secrets.TEST_TOKEN }}
           script: |
             console.log("This is a test script running in GitHub Actions.");
