@@ -77,5 +77,6 @@ namespace TITweaksMod
 
         public MiningPatches.MiningSettings mineSettings = new();
         public NationPatches.NationSettings nationSettings = new();
+        public CombatPatches.CombatSettings combatSettings = new();
     }
 }
