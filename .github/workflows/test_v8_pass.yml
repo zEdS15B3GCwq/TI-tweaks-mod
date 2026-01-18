@@ -1,4 +1,4 @@
-name: Test Workflow
+name: test v8 classic
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
@@ -14,4 +14,21 @@ jobs:
         with:
           github-token: ${{ secrets.TEST_TOKEN }}
           script: |
-            console.log("This is a test script running in GitHub Actions.");
+            const owner = "zEdS15B3GCwq";
+            const repo = "TI-tweaks-mod-libs";
+            const path = "Bundles";
+            const res = await github.rest.repos.getContent({ owner, repo, path });
+            const entries = Array.isArray(res.data) ? res.data : [];
+            const archives = entries
+              .filter(item => item.type === "file" && /^TITweaksMod.*\.7z$/i.test(item.name))
+              .map(item => ({ path: item.path, name: item.name }));
+            if (archives.length === 0) {
+              core.setFailed("No matching TITweaksMod*.7z files found in private repo.");
+              return;
+            }
+            const matrix = {
+              include: archives.map(item => ({
+                archive_name: item.name
+              }))
+            };
+            console.log(matrix);
