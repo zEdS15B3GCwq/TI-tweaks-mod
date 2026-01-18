@@ -83,7 +83,6 @@ jobs:
         uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
-          # github-token: ${{ secrets.TEST_TOKEN }}
           script: |
             const owner = "zEdS15B3GCwq";
             const repo = "TI-tweaks-mod-libs";
@@ -123,7 +122,6 @@ jobs:
       - name: download libs archive
         uses: actions/github-script@v8
         with:
-          # github-token: ${{ secrets.TEST_TOKEN }}
           github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
           script: |
             const fs = require("fs");
