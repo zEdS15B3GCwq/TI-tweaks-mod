@@ -1,0 +1,212 @@
+---
+# Runs pre-commit on changed files in a PR and pushes fixes back to the PR branch
+name: PR pre-commit
+
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: check if needed
+    runs-on: ubuntu-latest
+    outputs:
+      is_fork: ${{ steps.check-fork.outputs.is_fork }}
+      has_files: ${{ steps.changed.outputs.has_files }}
+      changed_files: ${{ steps.changed.outputs.files }}
+      is_bot: ${{ steps.check-bot.outputs.is_bot }}
+
+    steps:
+      - name: check if PR author is a bot
+        id: check-bot
+        uses: actions/github-script@v8
+        with:
+          script: |
+            // Check if this workflow was triggered by our GitHub App
+            const isBot = context.actor === 'pre-commit-bot[bot]';
+            core.setOutput("is_bot", isBot.toString());
+            console.log(`Context actor: ${context.actor} is bot: ${isBot}`);
+
+      - name: check if PR is from a fork
+        id: check-fork
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const isFork = pr.head.repo.full_name !== pr.base.repo.full_name;
+            core.setOutput("is_fork", isFork.toString());
+            console.log(`Is fork: ${isFork}`);
+
+      - name: list changed files
+        id: changed
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+              }
+            );
+            const filenames = files
+              .filter(f => f.status !== 'removed')  // Filter removed files
+              .map(f => f.filename);
+            console.log("Changed files:", filenames);
+
+            const filesString = filenames.join('\n');
+            core.setOutput("files", filesString);
+            core.setOutput("has_files", filenames.length > 0 ? "true" : "false");
+
+  precommit:
+    name: pre-commit (changed files)
+    needs: prepare
+    runs-on: ubuntu-latest
+    if: |
+      needs.prepare.outputs.is_fork == 'false' &&
+      needs.prepare.outputs.has_files == 'true' &&
+      needs.prepare.outputs.is_bot == 'false'
+    outputs:
+      changes_detected: ${{ steps.modified.outputs.changes }}
+      artifact_name: ${{ steps.artifact-name.outputs.name }}
+    strategy:
+      matrix:
+        python-version: ["3.14"]
+        os: [ubuntu-latest]
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: install uv
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867  # v7.1.6
+        with:
+          enable-cache: true
+
+      - name: save prek cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/prek
+          key: prek-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}  # yamllint disable-line rule:line-length
+          restore-keys: |
+            prek-${{ matrix.os }}-${{ matrix.python-version }}
+
+      - name: run prek
+        id: run-precommit
+        continue-on-error: true
+        env:
+          CHANGED_FILES: ${{ needs.prepare.outputs.changed_files }}
+        run: |
+          # Validate file list exists is not empty
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "Error: no changed files"
+            exit 1
+          fi
+
+          mapfile -t files_array <<< "$CHANGED_FILES"
+
+          echo "pre_commit_ran=true" >> $GITHUB_OUTPUT
+          uvx --python ${{ matrix.python-version }} \
+            prek run \
+            --show-diff-on-failure \
+            --color=always \
+            --files "${files_array[@]}"
+        shell: bash
+
+      - name: check for files modified by pre-commit
+        if: |
+          steps.run-precommit.outcome == 'failure' &&
+          steps.run-precommit.outputs.pre_commit_ran == 'true'
+        id: modified
+        run: |
+          git_status=$(git status --porcelain)
+          echo "Git status output:"
+          echo "$git_status"
+
+          if [ -n "$git_status" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Modified files detected by pre-commit"
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No modifications made by pre-commit"
+          fi
+        shell: bash
+
+      - name: generate artifact name
+        if: steps.modified.outputs.changes == 'true'
+        id: artifact-name
+        run: |
+          artifact_name="precommit-fixes-${{ github.run_id }}-${{ github.run_attempt }}"
+          echo "name=${artifact_name}" >> $GITHUB_OUTPUT
+          echo "Generated artifact name: ${artifact_name}"
+        shell: bash
+
+      - name: upload modified files as artifact
+        if: steps.modified.outputs.changes == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: |
+            .
+            !.git
+          retention-days: 1
+
+  push:
+    name: push fixes
+    needs: precommit
+    runs-on: ubuntu-latest
+    if: needs.precommit.outputs.changes_detected == 'true'
+    environment:
+      name: pre-commit-bot
+    permissions:
+      contents: write
+
+    steps:
+      - name: generate github app token
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: checkout code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ steps.generate-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: download artifact with fixes
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ needs.precommit.outputs.artifact_name }}
+          path: .
+
+      - name: commit and push fixes
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .
+          git commit -m "[pre-commit] automatic fixes"
+          git push origin "HEAD:refs/heads/${HEAD_REF}"

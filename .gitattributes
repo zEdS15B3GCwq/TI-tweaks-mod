@@ -1,6 +1,14 @@
 # Normalize line endings
 * text=auto
 
+# Force LF for everything not meant for Windows
+.config/* text eol=lf
+.gitattributes text eol=lf
+.gitconfig text eol=lf
+LICENSE text eol=lf
+README.md text eol=lf
+.pre-commit-config.yaml text eol=lf
+
 # Treat C# files as text
 *.cs text diff=csharp
 
