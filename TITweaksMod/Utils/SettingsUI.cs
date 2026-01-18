@@ -220,6 +220,7 @@ namespace TITweaksMod
 
             MiningPatches.UI.OnGUI(Main.Settings.mineSettings, Context);
             NationPatches.UI.OnGUI(Main.Settings.nationSettings, Context);
+            CombatPatches.UI.OnGUI(Main.Settings.combatSettings, Context);
 
             GUILayout.EndVertical();
         }
