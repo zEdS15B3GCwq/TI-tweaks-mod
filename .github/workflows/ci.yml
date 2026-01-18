@@ -80,10 +80,10 @@ jobs:
     steps:
       - name: discover .7z files
         id: discover
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
-          # github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
-          github-token: ${{ secrets.TEST_TOKEN }}
+          github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
+          # github-token: ${{ secrets.TEST_TOKEN }}
           script: |
             const owner = "zEdS15B3GCwq";
             const repo = "TI-tweaks-mod-libs";
@@ -121,10 +121,10 @@ jobs:
           persist-credentials: false
 
       - name: download libs archive
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.TEST_TOKEN }}
-          # github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
+          # github-token: ${{ secrets.TEST_TOKEN }}
+          github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
           script: |
             const fs = require("fs");
             const path = require("path");
