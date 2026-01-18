@@ -144,7 +144,7 @@ jobs:
             const owner = "zEdS15B3GCwq";
             const repo = "TI-tweaks-mod-libs";
             const archiveName = process.env.ARCHIVE_NAME;
-            const archivePath = path.join("Bundles", archiveName);
+            const archiveWebPath = path.posix.join("Bundles", archiveName);
             const outputDir = path.join(process.env.GITHUB_WORKSPACE);
             const outputPath = path.join(outputDir, archiveName);
 
