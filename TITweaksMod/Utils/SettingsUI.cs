@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Runtime;
+using System.Runtime.Remoting.Contexts;
+using UnityEngine;
 using UnityModManagerNet;
 
 namespace TITweaksMod
@@ -72,7 +74,7 @@ namespace TITweaksMod
         {
             GroupStyle = new(GUI.skin.box) { padding = new RectOffset(10, 10, 10, 10) };
             SliderLayout = GUILayout.Width(200f);
-            WideSliderLayout = GUILayout.Width(500f);
+            WideSliderLayout = GUILayout.Width(400f);
             SliderLabelLayout = GUILayout.MinWidth(60f);
 
             // toggle button style: active - green, inactive - red
@@ -172,9 +174,18 @@ namespace TITweaksMod
         {
             if (layout.Length == 0)
                 layout = [SliderLayout];
+            float newValue = 0;
+            if (GUILayout.Button("-1"))
+                newValue -= 1f;
+            if (GUILayout.Button("-0.1"))
+                newValue -= 0.1f;
             float sliderValue = GUILayout.HorizontalSlider(oldValue, min, max, layout);
-            float newValue = Mathf.Clamp((float)Math.Round(sliderValue, 1), min, max);
-            GUILayout.Label(newValue.ToString("0.0"), SliderLabelLayout);
+            newValue += Mathf.Clamp((float)Math.Round(sliderValue, 1), min, max);
+            if (GUILayout.Button("+0.1"))
+                newValue += 0.1f;
+            if (GUILayout.Button("+1"))
+                newValue += 1f;
+            GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
             return newValue;
         }
 
@@ -187,10 +198,20 @@ namespace TITweaksMod
         {
             if (layout.Length == 0)
                 layout = [SliderLayout];
+            int newValue = 0;
+            if (GUILayout.Button("-1"))
+                newValue -= 1;
             float sliderValue = GUILayout.HorizontalSlider(oldValue, min, max, layout);
-            int newValue = Mathf.Clamp(Mathf.RoundToInt(sliderValue), min, max);
-            GUILayout.Label(newValue.ToString("0.0"), SliderLabelLayout);
+            newValue += Mathf.Clamp(Mathf.RoundToInt(sliderValue), min, max);
+            if (GUILayout.Button("+1"))
+                newValue += 1;
+            GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
             return newValue;
+        }
+
+        internal bool OnOffToggle(in bool oldValue)
+        {
+            return GUILayout.Toggle(oldValue, oldValue ? "  on  " : "  off  ", ToggleStyle);
         }
     }
 

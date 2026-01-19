@@ -128,19 +128,18 @@ namespace TITweaksMod.CombatPatches
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("1. Player ship invulnerability (default: off):");
                 GUILayout.Space(5);
-                settings.playerShipsInvulnerable = GUILayout.Toggle(
-                    settings.playerShipsInvulnerable,
-                    settings.playerShipsInvulnerable ? "  on  " : "  off  ",
-                    context.ToggleStyle
+                settings.playerShipsInvulnerable = context.OnOffToggle(
+                    settings.playerShipsInvulnerable
                 );
-                GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
                 // TWEAK: multiply damage dealt by player ships
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(
-                    "2. Multiply damage dealt by player ships (default: 1.0, change to enable):"
+                GUILayout.Label("2. Multiply damage dealt by player ships:");
+                GUILayout.Space(5);
+                settings.multiplyPlayerDamage_Enable = context.OnOffToggle(
+                    settings.multiplyPlayerDamage_Enable
                 );
                 GUILayout.FlexibleSpace();
                 settings.multiplyPlayerDamage = context.FloatHorizontalSlider(
@@ -155,13 +154,9 @@ namespace TITweaksMod.CombatPatches
             // TWEAK: disable player ammo decrease
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("3. Player ships do not use ammo (default: off):");
+            GUILayout.Label("3. Player ships do not use ammo:");
             GUILayout.Space(5);
-            settings.playerShipsDontUseAmmo = GUILayout.Toggle(
-                settings.playerShipsDontUseAmmo,
-                settings.playerShipsDontUseAmmo ? "  on  " : "  off  ",
-                context.ToggleStyle
-            );
+            settings.playerShipsDontUseAmmo = context.OnOffToggle(settings.playerShipsDontUseAmmo);
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
@@ -172,6 +167,7 @@ namespace TITweaksMod.CombatPatches
     public class CombatSettings : UnityModManager.ModSettings
     {
         public bool playerShipsInvulnerable = false;
+        public bool multiplyPlayerDamage_Enable = false;
         public float multiplyPlayerDamage = 1f;
         public bool playerShipsDontUseAmmo = false;
     }
