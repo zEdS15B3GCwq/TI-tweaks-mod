@@ -60,12 +60,12 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
 
             NationSettings settings = Main.Settings.nationSettings;
 
-            if (settings.unrestOffset != 0 && __instance.extant)
+            if (settings.unrestOffset_Enable && settings.unrestOffset != 0 && __instance.extant)
                 __result = Mathf.Clamp(__result + settings.unrestOffset, 0f, 10f);
         }
     }
@@ -76,12 +76,12 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
 
             NationSettings settings = Main.Settings.nationSettings;
 
-            if (settings.unrestOffset != 0 && __instance.extant)
+            if (settings.unrestOffset_Enable && settings.unrestOffset != 0 && __instance.extant)
                 __result = __result + settings.unrestOffset;
         }
     }
@@ -92,12 +92,12 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
 
             NationSettings settings = Main.Settings.nationSettings;
 
-            if (settings.cohesionOffset != 0 && __instance.extant)
+            if (settings.cohesionOffset_Enable && settings.cohesionOffset != 0 && __instance.extant)
                 __result = Mathf.Clamp(__result + settings.cohesionOffset, 0f, 10f);
         }
     }
@@ -107,7 +107,7 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref bool __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
             NationSettings settings = Main.Settings.nationSettings;
 
@@ -127,7 +127,7 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref bool __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
             NationSettings settings = Main.Settings.nationSettings;
 
@@ -147,7 +147,7 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref bool __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
             NationSettings settings = Main.Settings.nationSettings;
 
@@ -179,17 +179,20 @@ namespace TITweaksMod.NationPatches
             GUILayout.BeginVertical(context.GroupStyle);
             {
                 // group label
-                GUILayout.Label("Nation tweaks", UnityModManager.UI.h2);
+                GUILayout.Label("Nation / Diplomacy", UnityModManager.UI.h2);
 
                 // TWEAK: shift base unrest
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("1. Shift unrest rest state (default: 0.0, change to enable):");
+                GUILayout.Label("1. Unrest rest state offset:");
+                GUILayout.Space(5);
+                settings.unrestOffset_Enable = context.OnOffToggle(settings.unrestOffset_Enable);
                 GUILayout.FlexibleSpace();
                 settings.unrestOffset = context.FloatHorizontalSlider(
                     settings.unrestOffset,
                     -10f,
                     10f,
+                    0f,
                     context.WideSliderLayout
                 );
                 GUILayout.EndHorizontal();
@@ -197,12 +200,17 @@ namespace TITweaksMod.NationPatches
                 // TWEAK: shift base cohesion
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("2. Shift cohesion rest state (default: 0.0, change to enable):");
+                GUILayout.Label("2. Cohesion rest state offset:");
+                GUILayout.Space(5);
+                settings.cohesionOffset_Enable = context.OnOffToggle(
+                    settings.cohesionOffset_Enable
+                );
                 GUILayout.FlexibleSpace();
                 settings.cohesionOffset = context.FloatHorizontalSlider(
                     settings.cohesionOffset,
                     -10f,
                     10f,
+                    0f,
                     context.WideSliderLayout
                 );
                 GUILayout.EndHorizontal();
@@ -210,7 +218,7 @@ namespace TITweaksMod.NationPatches
                 // TWEAK: ignore hostile claims
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("3. All claims are non-hostile (default: off):");
+                GUILayout.Label("3. All claims are non-hostile:");
                 GUILayout.Space(10);
                 settings.ignoreHostileClaims = (ExclusiveTargets)
                     GUILayout.Toolbar(
@@ -223,7 +231,7 @@ namespace TITweaksMod.NationPatches
                 // TWEAK: ignore diplomatic cooldowns
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("4. Ignore diplomatic cooldowns (default: off):");
+                GUILayout.Label("4. Ignore diplomatic cooldowns:");
                 GUILayout.Space(10);
                 settings.ignoreDiploCooldowns = (ExclusiveTargets)
                     GUILayout.Toolbar(
@@ -236,7 +244,7 @@ namespace TITweaksMod.NationPatches
                 // TWEAK: claim on all capitals
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("5. Claim on all capitals (default: off):");
+                GUILayout.Label("5. Claim on all capitals:");
                 GUILayout.Space(10);
                 settings.claimAllCapitals = (ExclusiveTargets)
                     GUILayout.Toolbar(
@@ -253,7 +261,9 @@ namespace TITweaksMod.NationPatches
 
     public class NationSettings : UnityModManager.ModSettings
     {
+        public bool unrestOffset_Enable = false;
         public float unrestOffset = 0f;
+        public bool cohesionOffset_Enable = false;
         public float cohesionOffset = 0f;
         public ExclusiveTargets ignoreHostileClaims = ExclusiveTargets.Off;
         public ExclusiveTargets ignoreDiploCooldowns = ExclusiveTargets.Off;

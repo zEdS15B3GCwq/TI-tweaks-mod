@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Runtime;
+using System.Runtime.Remoting.Contexts;
+using UnityEngine;
 using UnityModManagerNet;
 
 namespace TITweaksMod
@@ -71,9 +73,10 @@ namespace TITweaksMod
         internal SettingsUIContext()
         {
             GroupStyle = new(GUI.skin.box) { padding = new RectOffset(10, 10, 10, 10) };
-            SliderLayout = GUILayout.Width(200f);
-            WideSliderLayout = GUILayout.Width(500f);
-            SliderLabelLayout = GUILayout.MinWidth(60f);
+            MinimalPadding = new(GUI.skin.button) { padding = new RectOffset(3, 3, 3, 3) };
+            //SliderLayout = GUILayout.Width(200f);
+            //WideSliderLayout = GUILayout.Width(400f);
+            //SliderLabelLayout = GUILayout.MinWidth(60f);
 
             // toggle button style: active - green, inactive - red
             ToggleStyle = new(GUI.skin.button);
@@ -156,41 +159,66 @@ namespace TITweaksMod
             }
         }
 
-        internal GUIStyle ToggleStyle { get; private set; }
+        internal GUIStyle ToggleStyle { get; }
         internal GUIStyle GroupStyle { get; private set; }
         internal GUIStyle ToolbarStyle { get; private set; }
-        internal GUILayoutOption SliderLayout { get; }
-        internal GUILayoutOption WideSliderLayout { get; }
-        internal GUILayoutOption SliderLabelLayout { get; }
+
+        private GUIStyle MinimalPadding { get; }
+        internal GUILayoutOption SliderLayout { get; } = GUILayout.Width(200f);
+        internal GUILayoutOption WideSliderLayout { get; } = GUILayout.Width(400f);
+        internal GUILayoutOption SliderLabelLayout { get; } = GUILayout.MinWidth(60f);
 
         internal float FloatHorizontalSlider(
             in float oldValue,
             in float min,
             in float max,
+            in float? defaultValue = null,
             params GUILayoutOption[] layout
         )
         {
             if (layout.Length == 0)
                 layout = [SliderLayout];
+            bool reset = defaultValue.HasValue && GUILayout.Button("Reset", MinimalPadding);
+            float newValue = 0;
+            if (GUILayout.Button("-1", MinimalPadding))
+                newValue -= 1f;
+            if (GUILayout.Button("-0.1", MinimalPadding))
+                newValue -= 0.1f;
             float sliderValue = GUILayout.HorizontalSlider(oldValue, min, max, layout);
-            float newValue = Mathf.Clamp((float)Math.Round(sliderValue, 1), min, max);
-            GUILayout.Label(newValue.ToString("0.0"), SliderLabelLayout);
-            return newValue;
+            newValue += (float)Math.Round(sliderValue, 1);
+            if (GUILayout.Button("+0.1", MinimalPadding))
+                newValue += 0.1f;
+            if (GUILayout.Button("+1", MinimalPadding))
+                newValue += 1f;
+            GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
+            return Mathf.Clamp(reset ? defaultValue!.Value : newValue, min, max);
         }
 
         internal int IntHorizontalSlider(
             in int oldValue,
             in int min,
             in int max,
+            in int? defaultValue = null,
             params GUILayoutOption[] layout
         )
         {
             if (layout.Length == 0)
                 layout = [SliderLayout];
+            bool reset = defaultValue.HasValue && GUILayout.Button("Reset", MinimalPadding);
+            int newValue = 0;
+            if (GUILayout.Button("-1", MinimalPadding))
+                newValue -= 1;
             float sliderValue = GUILayout.HorizontalSlider(oldValue, min, max, layout);
-            int newValue = Mathf.Clamp(Mathf.RoundToInt(sliderValue), min, max);
-            GUILayout.Label(newValue.ToString("0.0"), SliderLabelLayout);
-            return newValue;
+            newValue += Mathf.RoundToInt(sliderValue);
+            if (GUILayout.Button("+1", MinimalPadding))
+                newValue += 1;
+            GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
+            return Mathf.Clamp(reset ? defaultValue!.Value : newValue, min, max);
+        }
+
+        internal bool OnOffToggle(in bool oldValue)
+        {
+            return GUILayout.Toggle(oldValue, oldValue ? "  on  " : "  off  ", ToggleStyle);
         }
     }
 

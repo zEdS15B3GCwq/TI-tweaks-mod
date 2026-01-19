@@ -12,7 +12,7 @@ namespace TITweaksMod.MiningPatches
         typeof(TIFactionState),
         nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork)
     )]
-    internal static class MineMCCostPatch
+    internal static class MineMCCost_Patch
     {
         /// <summary>
         /// Prefix patch for the TIFactionState.GetMissionControlRequirementFromMineNetwork() method that
@@ -41,23 +41,26 @@ namespace TITweaksMod.MiningPatches
         /// <param name="__state">The original mine network size captured from the Prefix patch.</param>
         static void Postfix(TIFactionState __instance, ref int __result, int __state)
         {
-            if (!Main.enabled || Main.Settings is null)
-                return; // keep original
+            if (!Main.enabled || Main.Settings?.mineSettings is null)
+                return;
             MiningSettings settings = Main.Settings.mineSettings;
 
             // if linear cost is enabled, override original calculation and result
-            if (settings.linearMineMCCostEnabled)
+            if (settings.linearMineMCCost_Enabled)
             {
                 int mineNetworkSize = __state;
                 if (mineNetworkSize < 0)
                     mineNetworkSize = __instance.MineNetworkSize;
 
                 mineNetworkSize -= __instance.SafeMineNextworkSize;
-                __result = mineNetworkSize > 0 ? mineNetworkSize * settings.linearMCCostPerMine : 0;
+                __result = mineNetworkSize > 0 ? mineNetworkSize * settings.linearMineMCCost : 0;
             }
 
             // apply global cost multiplier if set
-            if (settings.globalMineMCCostMultiplier != 1.0f)
+            if (
+                settings.globalMineMCCostMultiplier_Enabled
+                && settings.globalMineMCCostMultiplier != 1.0f
+            )
             {
                 __result = Mathf.RoundToInt(__result * settings.globalMineMCCostMultiplier);
             }
@@ -68,7 +71,7 @@ namespace TITweaksMod.MiningPatches
         typeof(TIFactionState),
         nameof(TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects)
     )]
-    internal static class MineProductivityPatch
+    internal static class MineProductivity_Patch
     {
         /// <summary>
         /// Postfix patch for the in-game TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects()
@@ -78,13 +81,13 @@ namespace TITweaksMod.MiningPatches
         /// <param name="__result">Tweaked mining productivity.</param>
         static void Postfix(TIFactionState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings is null)
-                return; // keep original
+            if (!Main.enabled || Main.Settings?.mineSettings is null)
+                return;
 
             MiningSettings settings = Main.Settings.mineSettings;
             if (settings.globalMineProductionMultiplier != 1.0f)
             {
-                TargetGroups targets = settings.globalMineProductionMultiplierTargets;
+                TargetGroups targets = settings.globalMineProductionMultiplier_Targets;
                 if (
                     (targets & TargetGroups.Player) != 0 && __instance.isActivePlayer
                     || (
@@ -102,7 +105,7 @@ namespace TITweaksMod.MiningPatches
     }
 
     [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetYearlyIncome))]
-    internal static class RecalcMineIncomeIfNeededPatch
+    internal static class RecalcMineIncomeIfNeeded_Patch
     {
         /// <summary>
         /// Indicates that mining income recalculation is needed.
@@ -128,7 +131,7 @@ namespace TITweaksMod.MiningPatches
         /// <param name="__instance"></param>
         static void Postfix(TIFactionState __instance)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.mineSettings is null)
                 return; // keep original
             MiningSettings settings = Main.Settings.mineSettings;
 
@@ -186,7 +189,7 @@ namespace TITweaksMod.MiningPatches
             {
                 MineProdSettingsAtGuiOpen = new(
                     multiplier: settings.globalMineProductionMultiplier,
-                    targets: settings.globalMineProductionMultiplierTargets
+                    targets: settings.globalMineProductionMultiplier_Targets
                 );
                 firstFrame = false;
             }
@@ -195,58 +198,48 @@ namespace TITweaksMod.MiningPatches
             GUILayout.BeginVertical(context.GroupStyle);
 
             // group label
-            GUILayout.Label("Mining tweaks", UnityModManager.UI.h2);
+            GUILayout.Label("Mining", UnityModManager.UI.h2);
 
             // TWEAK: linear cost per mine above free cap
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("1. Linear cost above free limit (default: off):");
-            GUILayout.Space(15);
-            settings.linearMineMCCostEnabled = GUILayout.Toggle(
-                settings.linearMineMCCostEnabled,
-                settings.linearMineMCCostEnabled ? "on" : "off",
-                context.ToggleStyle
+            GUILayout.Label("1. Linear mine MC cost above free limit:");
+            GUILayout.Space(10);
+            settings.linearMineMCCost_Enabled = context.OnOffToggle(
+                settings.linearMineMCCost_Enabled
             );
             GUILayout.FlexibleSpace();
             GUILayout.Label("Cost per mine:");
-            float sliderValue = GUILayout.HorizontalSlider(
-                settings.linearMCCostPerMine,
-                1f,
-                15f,
-                context.SliderLayout
+            settings.linearMineMCCost = context.IntHorizontalSlider(
+                settings.linearMineMCCost,
+                1,
+                15
             );
-            settings.linearMCCostPerMine = Mathf.Clamp(Mathf.RoundToInt(sliderValue), 1, 15);
-            GUILayout.Label(settings.linearMCCostPerMine.ToString(), context.SliderLabelLayout);
             GUILayout.EndHorizontal();
 
             // TWEAK: global mine cost multiplier
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("2. Global mine cost multiplier (default: 1.0, change to enable):");
+            GUILayout.Label("2. Global mine MC cost multiplier:");
+            GUILayout.Space(10);
+            settings.globalMineMCCostMultiplier_Enabled = context.OnOffToggle(
+                settings.globalMineMCCostMultiplier_Enabled
+            );
             GUILayout.FlexibleSpace();
-            sliderValue = GUILayout.HorizontalSlider(
+            settings.globalMineMCCostMultiplier = context.FloatHorizontalSlider(
                 settings.globalMineMCCostMultiplier,
                 0f,
                 2f,
-                context.SliderLayout
-            );
-            settings.globalMineMCCostMultiplier = Mathf.Clamp(
-                (float)Math.Round(sliderValue, 1),
-                0f,
-                2f
-            );
-            GUILayout.Label(
-                settings.globalMineMCCostMultiplier.ToString("0.0"),
-                context.SliderLabelLayout
+                1f
             );
             GUILayout.EndHorizontal();
 
             // TWEAK: global mine productivity multiplier
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("3. Mine productivity multiplier (default: 1.0, change to enable):");
+            GUILayout.Label("3. Mine productivity multiplier:");
             GUILayout.Space(10);
-            TargetGroups oldTargets = settings.globalMineProductionMultiplierTargets;
+            TargetGroups oldTargets = settings.globalMineProductionMultiplier_Targets;
             TargetGroups newTargets = TargetGroups.None;
             if (
                 GUILayout.Toggle(
@@ -280,23 +273,13 @@ namespace TITweaksMod.MiningPatches
             {
                 newTargets |= TargetGroups.Aliens;
             }
-            settings.globalMineProductionMultiplierTargets = newTargets;
-
+            settings.globalMineProductionMultiplier_Targets = newTargets;
             GUILayout.FlexibleSpace();
-            sliderValue = GUILayout.HorizontalSlider(
+            settings.globalMineProductionMultiplier = context.FloatHorizontalSlider(
                 settings.globalMineProductionMultiplier,
                 0f,
                 10f,
-                context.SliderLayout
-            );
-            settings.globalMineProductionMultiplier = Mathf.Clamp(
-                (float)Math.Round(sliderValue, 1),
-                0f,
-                10f
-            );
-            GUILayout.Label(
-                settings.globalMineProductionMultiplier.ToString("0.0"),
-                context.SliderLabelLayout
+                1f
             );
             GUILayout.EndHorizontal();
 
@@ -310,9 +293,9 @@ namespace TITweaksMod.MiningPatches
                 if (
                     MineProdSettingsAtGuiOpen.Multiplier != settings.globalMineProductionMultiplier
                     || MineProdSettingsAtGuiOpen.Targets
-                        != settings.globalMineProductionMultiplierTargets
+                        != settings.globalMineProductionMultiplier_Targets
                 )
-                    RecalcMineIncomeIfNeededPatch.needUpdate = true;
+                    RecalcMineIncomeIfNeeded_Patch.needUpdate = true;
             }
             firstFrame = true;
         }
@@ -320,10 +303,11 @@ namespace TITweaksMod.MiningPatches
 
     public class MiningSettings : UnityModManager.ModSettings
     {
-        public bool linearMineMCCostEnabled = false;
-        public int linearMCCostPerMine = 6;
+        public bool linearMineMCCost_Enabled = false;
+        public int linearMineMCCost = 6;
+        public bool globalMineMCCostMultiplier_Enabled = false;
         public float globalMineMCCostMultiplier = 1f;
+        public TargetGroups globalMineProductionMultiplier_Targets = TargetGroups.None;
         public float globalMineProductionMultiplier = 1f;
-        public TargetGroups globalMineProductionMultiplierTargets = TargetGroups.None;
     }
 }
