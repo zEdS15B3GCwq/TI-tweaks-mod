@@ -213,8 +213,7 @@ namespace TITweaksMod.MiningPatches
             settings.linearMineMCCost = context.IntHorizontalSlider(
                 settings.linearMineMCCost,
                 1,
-                15,
-                1
+                15
             );
             GUILayout.EndHorizontal();
 

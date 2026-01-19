@@ -126,11 +126,12 @@ namespace TITweaksMod.CombatPatches
                 // TWEAK: disable combat damage to player ships
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("1. Player ship invulnerability (default: off):");
+                GUILayout.Label("1. Player ship invulnerability:");
                 GUILayout.Space(5);
                 settings.playerShipsInvulnerable = context.OnOffToggle(
                     settings.playerShipsInvulnerable
                 );
+                GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
                 // TWEAK: multiply damage dealt by player ships
