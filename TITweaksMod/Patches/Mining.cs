@@ -213,7 +213,8 @@ namespace TITweaksMod.MiningPatches
             settings.linearMineMCCost = context.IntHorizontalSlider(
                 settings.linearMineMCCost,
                 1,
-                15
+                15,
+                1
             );
             GUILayout.EndHorizontal();
 
@@ -229,7 +230,8 @@ namespace TITweaksMod.MiningPatches
             settings.globalMineMCCostMultiplier = context.FloatHorizontalSlider(
                 settings.globalMineMCCostMultiplier,
                 0f,
-                2f
+                2f,
+                1f
             );
             GUILayout.EndHorizontal();
 
@@ -277,7 +279,8 @@ namespace TITweaksMod.MiningPatches
             settings.globalMineProductionMultiplier = context.FloatHorizontalSlider(
                 settings.globalMineProductionMultiplier,
                 0f,
-                10f
+                10f,
+                1f
             );
             GUILayout.EndHorizontal();
 

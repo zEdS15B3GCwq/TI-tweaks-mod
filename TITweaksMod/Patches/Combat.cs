@@ -146,6 +146,7 @@ namespace TITweaksMod.CombatPatches
                     settings.multiplyPlayerDamage,
                     0f,
                     10f,
+                    1f,
                     context.WideSliderLayout
                 );
                 GUILayout.EndHorizontal();

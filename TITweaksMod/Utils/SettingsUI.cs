@@ -169,11 +169,13 @@ namespace TITweaksMod
             in float oldValue,
             in float min,
             in float max,
+            in float defaultValue = 0f,
             params GUILayoutOption[] layout
         )
         {
             if (layout.Length == 0)
                 layout = [SliderLayout];
+            bool reset = (GUILayout.Button("Reset"));
             float newValue = 0;
             if (GUILayout.Button("-1"))
                 newValue -= 1f;
@@ -186,18 +188,20 @@ namespace TITweaksMod
             if (GUILayout.Button("+1"))
                 newValue += 1f;
             GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
-            return newValue;
+            return reset ? defaultValue : newValue;
         }
 
         internal int IntHorizontalSlider(
             in int oldValue,
             in int min,
             in int max,
+            in int defaultValue = 0,
             params GUILayoutOption[] layout
         )
         {
             if (layout.Length == 0)
                 layout = [SliderLayout];
+            bool reset = GUILayout.Button("Reset");
             int newValue = 0;
             if (GUILayout.Button("-1"))
                 newValue -= 1;
@@ -206,7 +210,7 @@ namespace TITweaksMod
             if (GUILayout.Button("+1"))
                 newValue += 1;
             GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
-            return newValue;
+            return reset ? defaultValue : newValue;
         }
 
         internal bool OnOffToggle(in bool oldValue)

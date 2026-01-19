@@ -192,6 +192,7 @@ namespace TITweaksMod.NationPatches
                     settings.unrestOffset,
                     -10f,
                     10f,
+                    0f,
                     context.WideSliderLayout
                 );
                 GUILayout.EndHorizontal();
@@ -209,6 +210,7 @@ namespace TITweaksMod.NationPatches
                     settings.cohesionOffset,
                     -10f,
                     10f,
+                    0f,
                     context.WideSliderLayout
                 );
                 GUILayout.EndHorizontal();
