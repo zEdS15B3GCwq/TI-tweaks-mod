@@ -60,12 +60,12 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
 
             NationSettings settings = Main.Settings.nationSettings;
 
-            if (settings.unrestOffset != 0 && __instance.extant)
+            if (settings.unrestOffset_Enable && settings.unrestOffset != 0 && __instance.extant)
                 __result = Mathf.Clamp(__result + settings.unrestOffset, 0f, 10f);
         }
     }
@@ -76,12 +76,12 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
 
             NationSettings settings = Main.Settings.nationSettings;
 
-            if (settings.unrestOffset != 0 && __instance.extant)
+            if (settings.unrestOffset_Enable && settings.unrestOffset != 0 && __instance.extant)
                 __result = __result + settings.unrestOffset;
         }
     }
@@ -92,12 +92,12 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
 
             NationSettings settings = Main.Settings.nationSettings;
 
-            if (settings.cohesionOffset != 0 && __instance.extant)
+            if (settings.cohesionOffset_Enable && settings.cohesionOffset != 0 && __instance.extant)
                 __result = Mathf.Clamp(__result + settings.cohesionOffset, 0f, 10f);
         }
     }
@@ -107,7 +107,7 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref bool __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
             NationSettings settings = Main.Settings.nationSettings;
 
@@ -127,7 +127,7 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref bool __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
             NationSettings settings = Main.Settings.nationSettings;
 
@@ -147,7 +147,7 @@ namespace TITweaksMod.NationPatches
     {
         internal static void Postfix(TINationState __instance, ref bool __result)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
             NationSettings settings = Main.Settings.nationSettings;
 

@@ -74,7 +74,7 @@ namespace TITweaksMod.CombatPatches
                 }
             }
 
-            if (settings.multiplyPlayerDamage != 1f)
+            if (settings.multiplyPlayerDamage_Enable && settings.multiplyPlayerDamage != 1f)
             {
                 if (attackingFaction.isActivePlayer)
                 {

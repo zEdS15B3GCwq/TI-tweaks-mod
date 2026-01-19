@@ -12,7 +12,7 @@ namespace TITweaksMod.MiningPatches
         typeof(TIFactionState),
         nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork)
     )]
-    internal static class MineMCCostPatch
+    internal static class MineMCCost_Patch
     {
         /// <summary>
         /// Prefix patch for the TIFactionState.GetMissionControlRequirementFromMineNetwork() method that
@@ -41,8 +41,8 @@ namespace TITweaksMod.MiningPatches
         /// <param name="__state">The original mine network size captured from the Prefix patch.</param>
         static void Postfix(TIFactionState __instance, ref int __result, int __state)
         {
-            if (!Main.enabled || Main.Settings is null)
-                return; // keep original
+            if (!Main.enabled || Main.Settings?.mineSettings is null)
+                return;
             MiningSettings settings = Main.Settings.mineSettings;
 
             // if linear cost is enabled, override original calculation and result
@@ -57,7 +57,10 @@ namespace TITweaksMod.MiningPatches
             }
 
             // apply global cost multiplier if set
-            if (settings.globalMineMCCostMultiplier != 1.0f)
+            if (
+                settings.globalMineMCCostMultiplier_Enabled
+                && settings.globalMineMCCostMultiplier != 1.0f
+            )
             {
                 __result = Mathf.RoundToInt(__result * settings.globalMineMCCostMultiplier);
             }
@@ -68,7 +71,7 @@ namespace TITweaksMod.MiningPatches
         typeof(TIFactionState),
         nameof(TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects)
     )]
-    internal static class MineProductivityPatch
+    internal static class MineProductivity_Patch
     {
         /// <summary>
         /// Postfix patch for the in-game TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects()
@@ -78,8 +81,8 @@ namespace TITweaksMod.MiningPatches
         /// <param name="__result">Tweaked mining productivity.</param>
         static void Postfix(TIFactionState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings is null)
-                return; // keep original
+            if (!Main.enabled || Main.Settings?.mineSettings is null)
+                return;
 
             MiningSettings settings = Main.Settings.mineSettings;
             if (settings.globalMineProductionMultiplier != 1.0f)
@@ -102,7 +105,7 @@ namespace TITweaksMod.MiningPatches
     }
 
     [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetYearlyIncome))]
-    internal static class RecalcMineIncomeIfNeededPatch
+    internal static class RecalcMineIncomeIfNeeded_Patch
     {
         /// <summary>
         /// Indicates that mining income recalculation is needed.
@@ -128,7 +131,7 @@ namespace TITweaksMod.MiningPatches
         /// <param name="__instance"></param>
         static void Postfix(TIFactionState __instance)
         {
-            if (!Main.enabled || Main.Settings is null)
+            if (!Main.enabled || Main.Settings?.mineSettings is null)
                 return; // keep original
             MiningSettings settings = Main.Settings.mineSettings;
 
@@ -290,7 +293,7 @@ namespace TITweaksMod.MiningPatches
                     || MineProdSettingsAtGuiOpen.Targets
                         != settings.globalMineProductionMultiplier_Targets
                 )
-                    RecalcMineIncomeIfNeededPatch.needUpdate = true;
+                    RecalcMineIncomeIfNeeded_Patch.needUpdate = true;
             }
             firstFrame = true;
         }
