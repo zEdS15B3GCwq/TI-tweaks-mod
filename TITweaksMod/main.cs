@@ -30,6 +30,7 @@ namespace TITweaksMod
             try
             {
                 Harmony.PatchAll(Assembly.GetExecutingAssembly());
+                //CouncilorPatches.TIMissionResolution_GetMissionOutcome_Patch.ApplyPatch(Harmony);
             }
             catch
             {
@@ -78,5 +79,6 @@ namespace TITweaksMod
         public MiningPatches.MiningSettings mineSettings = new();
         public NationPatches.NationSettings nationSettings = new();
         public CombatPatches.CombatSettings combatSettings = new();
+        public CouncilorPatches.CouncilorSettings councilorSettings = new();
     }
 }
