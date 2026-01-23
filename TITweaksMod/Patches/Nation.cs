@@ -171,7 +171,7 @@ namespace TITweaksMod.NationPatches
 
     internal static class UI
     {
-        internal static string[] exclusiveTargetLabels = ["Off", "Player only", "All nations"];
+        internal static string[] exclusiveTargetLabels = ["Off", "Player", "Global"];
 
         internal static void OnGUI(NationSettings settings, in SettingsUIContext context)
         {

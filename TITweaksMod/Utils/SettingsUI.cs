@@ -1,6 +1,4 @@
-﻿using System.Runtime;
-using System.Runtime.Remoting.Contexts;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityModManagerNet;
 
 namespace TITweaksMod
@@ -98,6 +96,16 @@ namespace TITweaksMod
                 Color.black
             );
 
+            // selection grid button: same as toolbar just less padding
+            GridStyle = CreateStyle(
+                GUI.skin.button,
+                TextureStore.GrayTexture,
+                TextureStore.YellowTexture,
+                Color.black,
+                Color.black
+            );
+            GridStyle.padding = new RectOffset(3, 4, 4, 3);
+
             StateStyles =
             [
                 CreateStyle(
@@ -174,10 +182,10 @@ namespace TITweaksMod
             }
             if (onCol.HasValue)
             {
-                style.normal.textColor = onCol.Value;
-                style.hover.textColor = onCol.Value;
-                style.focused.textColor = onCol.Value;
-                style.active.textColor = onCol.Value;
+                style.onNormal.textColor = onCol.Value;
+                style.onHover.textColor = onCol.Value;
+                style.onFocused.textColor = onCol.Value;
+                style.onActive.textColor = onCol.Value;
             }
         }
 
@@ -206,43 +214,44 @@ namespace TITweaksMod
                     onTex: TextureStore.RedTexture
                 );
                 CustomiseStyle(
-                    ToolbarStyle,
+                    GridStyle,
                     tex: TextureStore.GrayTexture,
                     onTex: TextureStore.RedTexture
                 );
-                CustomiseStyle(
-                    ToolbarStyle,
-                    tex: TextureStore.GrayTexture,
-                    onTex: TextureStore.RedTexture
-                );
-                CustomiseStyle(
-                    ToolbarStyle,
-                    tex: TextureStore.GrayTexture,
-                    onTex: TextureStore.RedTexture
-                );
-                CustomiseStyle(
-                    ToolbarStyle,
-                    tex: TextureStore.GrayTexture,
-                    onTex: TextureStore.RedTexture
-                );
-                CustomiseStyle(
-                    ToolbarStyle,
-                    tex: TextureStore.GrayTexture,
-                    onTex: TextureStore.RedTexture
-                );
+                CustomiseStyle(StateStyles[0], tex: TextureStore.GrayTexture);
+                CustomiseStyle(StateStyles[1], tex: TextureStore.YellowTexture);
+                CustomiseStyle(StateStyles[2], tex: TextureStore.RedTexture);
+                CustomiseStyle(StateStyles[3], tex: TextureStore.GreenTexture);
+                CustomiseStyle(StateStyles[4], tex: TextureStore.BlueTexture);
             }
         }
 
         internal GUIStyle ToggleStyle { get; }
         internal GUIStyle GroupStyle { get; }
         internal GUIStyle ToolbarStyle { get; }
-
+        internal GUIStyle GridStyle { get; }
         internal GUIStyle[] StateStyles { get; }
-
         private GUIStyle MinimalPadding { get; }
         internal GUILayoutOption SliderLayout { get; } = GUILayout.Width(200f);
         internal GUILayoutOption WideSliderLayout { get; } = GUILayout.Width(400f);
         internal GUILayoutOption SliderLabelLayout { get; } = GUILayout.MinWidth(60f);
+
+        internal int IncrementButton(
+            in int oldValue,
+            string label,
+            in int max,
+            params GUILayoutOption[] layout
+        )
+        {
+            if (oldValue >= StateStyles.Length)
+            {
+                Main.Logger?.Error("IncrementButton index out of bounds.");
+                return oldValue;
+            }
+            if (GUILayout.Button(label, StateStyles[oldValue], layout))
+                return (oldValue + 1) % max;
+            return oldValue;
+        }
 
         internal float FloatHorizontalSlider(
             in float oldValue,
@@ -266,6 +275,7 @@ namespace TITweaksMod
                 newValue += 0.1f;
             if (GUILayout.Button("+1", MinimalPadding))
                 newValue += 1f;
+            GUILayout.Space(10f);
             GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
             return Mathf.Clamp(reset ? defaultValue!.Value : newValue, min, max);
         }
@@ -288,8 +298,34 @@ namespace TITweaksMod
             newValue += Mathf.RoundToInt(sliderValue);
             if (GUILayout.Button("+1", MinimalPadding))
                 newValue += 1;
+            GUILayout.Space(10f);
             GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
             return Mathf.Clamp(reset ? defaultValue!.Value : newValue, min, max);
+        }
+
+        internal bool SubtitleToggle(in string label, in bool oldValue)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, UnityModManager.UI.h2);
+            GUILayout.Space(10);
+            bool newValue = GUILayout.Toggle(
+                oldValue,
+                oldValue ? "  Show  " : "  Hide  ",
+                ToolbarStyle
+            );
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            return newValue;
+        }
+
+        internal void TweakSectionLabel(in string label, in int indent = 0)
+        {
+            GUILayout.Space(15);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20 * indent);
+            GUILayout.Label(label);
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
         }
 
         internal bool OnOffToggle(in bool oldValue)
@@ -316,11 +352,8 @@ namespace TITweaksMod
             Context ??= new SettingsUIContext();
             Context.ValidateStyles();
 
-            /// Draw basic layout and title for the mod settings
+            // Draw basic layout and title for the mod settings
             GUILayout.BeginVertical();
-
-            GUILayout.Label($"{modEntry.Info.DisplayName} Mod Settings", UnityModManager.UI.h1);
-            GUILayout.Space(10);
 
             MiningPatches.UI.OnGUI(Main.Settings.mineSettings, Context);
             NationPatches.UI.OnGUI(Main.Settings.nationSettings, Context);
@@ -340,6 +373,7 @@ namespace TITweaksMod
             if (Main.Settings is null)
                 return;
             MiningPatches.UI.OnHideGUI(Main.Settings.mineSettings);
+            CouncilorPatches.UI.OnHideGUI();
         }
     }
 }
