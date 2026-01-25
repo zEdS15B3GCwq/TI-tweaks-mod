@@ -1,31 +1,32 @@
-﻿using System.Runtime;
-using System.Runtime.Remoting.Contexts;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityModManagerNet;
 
 namespace TITweaksMod
 {
     internal static class TextureStore
     {
-        internal static Texture2D? ToggleOnTexture;
-        internal static Texture2D? ToggleOffTexture;
-        internal static Texture2D? ToolbarOnTexture;
-        internal static Texture2D? ToolbarOffTexture;
+        internal static Texture2D? GreenTexture;
+        internal static Texture2D? RedTexture;
+        internal static Texture2D? YellowTexture;
+        internal static Texture2D? GrayTexture;
+        internal static Texture2D? BlueTexture;
 
         private static void BuildTextures()
         {
-            ToggleOnTexture = CreateTexture(new Color(0.314f, 0.941f, 0.063f, 1.0f));
-            ToggleOffTexture = CreateTexture(new Color(0.941f, 0.302f, 0.078f, 1.0f));
-            ToolbarOnTexture = CreateTexture(new Color(0.941f, 0.71f, 0.098f, 1.0f));
-            ToolbarOffTexture = CreateTexture(new Color(0.6f, 0.6f, 0.6f, 1.0f));
+            GreenTexture = CreateTexture(new Color(0.314f, 0.941f, 0.063f, 1.0f));
+            RedTexture = CreateTexture(new Color(0.941f, 0.302f, 0.078f, 1.0f));
+            YellowTexture = CreateTexture(new Color(0.941f, 0.71f, 0.098f, 1.0f));
+            GrayTexture = CreateTexture(new Color(0.6f, 0.6f, 0.6f, 1.0f));
+            BlueTexture = CreateTexture(new Color(0.09f, 0.424f, 0.922f, 1.0f));
         }
 
         private static bool TexturesValid()
         {
-            return (ToggleOnTexture is not null)
-                && (ToggleOffTexture is not null)
-                && (ToolbarOnTexture is not null)
-                && (ToolbarOffTexture is not null);
+            return (GreenTexture is not null)
+                && (RedTexture is not null)
+                && (YellowTexture is not null)
+                && (BlueTexture is not null)
+                && (GrayTexture is not null);
         }
 
         internal static bool ValidateTextures()
@@ -74,99 +75,183 @@ namespace TITweaksMod
         {
             GroupStyle = new(GUI.skin.box) { padding = new RectOffset(10, 10, 10, 10) };
             MinimalPadding = new(GUI.skin.button) { padding = new RectOffset(3, 3, 3, 3) };
-            //SliderLayout = GUILayout.Width(200f);
-            //WideSliderLayout = GUILayout.Width(400f);
-            //SliderLabelLayout = GUILayout.MinWidth(60f);
-
-            // toggle button style: active - green, inactive - red
-            ToggleStyle = new(GUI.skin.button);
 
             TextureStore.ValidateTextures();
 
-            ToggleStyle.onNormal.background = TextureStore.ToggleOnTexture;
-            ToggleStyle.onHover.background = TextureStore.ToggleOnTexture;
-            ToggleStyle.onActive.background = TextureStore.ToggleOnTexture;
-            ToggleStyle.onFocused.background = TextureStore.ToggleOnTexture;
-            ToggleStyle.onNormal.textColor = Color.black;
-            ToggleStyle.onHover.textColor = Color.black;
-            ToggleStyle.onActive.textColor = Color.black;
-            ToggleStyle.onFocused.textColor = Color.black;
-
-            ToggleStyle.normal.background = TextureStore.ToggleOffTexture;
-            ToggleStyle.hover.background = TextureStore.ToggleOffTexture;
-            ToggleStyle.active.background = TextureStore.ToggleOffTexture;
-            ToggleStyle.focused.background = TextureStore.ToggleOffTexture;
-            ToggleStyle.normal.textColor = Color.black;
-            ToggleStyle.hover.textColor = Color.black;
-            ToggleStyle.active.textColor = Color.black;
-            ToggleStyle.focused.textColor = Color.black;
-
-            // ensure the 2px border is preserved when Unity stretches the background.
-            ToggleStyle.border = new RectOffset(2, 2, 2, 2);
+            // toggle button style: active - green, inactive - red
+            ToggleStyle = CreateStyle(
+                GUI.skin.button,
+                TextureStore.RedTexture,
+                TextureStore.GreenTexture,
+                Color.black,
+                Color.black
+            );
 
             // toolbar exclusive button style: active - orangeish, inactive - gray
-            ToolbarStyle = new(GUI.skin.button);
+            ToolbarStyle = CreateStyle(
+                GUI.skin.button,
+                TextureStore.GrayTexture,
+                TextureStore.YellowTexture,
+                Color.black,
+                Color.black
+            );
 
-            ToolbarStyle.onNormal.background = TextureStore.ToolbarOnTexture;
-            ToolbarStyle.onHover.background = TextureStore.ToolbarOnTexture;
-            ToolbarStyle.onActive.background = TextureStore.ToolbarOnTexture;
-            ToolbarStyle.onFocused.background = TextureStore.ToolbarOnTexture;
-            ToolbarStyle.onNormal.textColor = Color.black;
-            ToolbarStyle.onHover.textColor = Color.black;
-            ToolbarStyle.onActive.textColor = Color.black;
-            ToolbarStyle.onFocused.textColor = Color.black;
+            // selection grid button: same as toolbar just less padding
+            GridStyle = CreateStyle(
+                GUI.skin.button,
+                TextureStore.GrayTexture,
+                TextureStore.YellowTexture,
+                Color.black,
+                Color.black
+            );
+            GridStyle.padding = new RectOffset(3, 4, 4, 3);
 
-            ToolbarStyle.normal.background = TextureStore.ToolbarOffTexture;
-            ToolbarStyle.hover.background = TextureStore.ToolbarOffTexture;
-            ToolbarStyle.active.background = TextureStore.ToolbarOffTexture;
-            ToolbarStyle.focused.background = TextureStore.ToolbarOffTexture;
-            ToolbarStyle.normal.textColor = Color.black;
-            ToolbarStyle.hover.textColor = Color.black;
-            ToolbarStyle.active.textColor = Color.black;
-            ToolbarStyle.focused.textColor = Color.black;
+            StateStyles =
+            [
+                CreateStyle(
+                    baseStyle: GUI.skin.button,
+                    tex: TextureStore.GrayTexture,
+                    col: Color.black
+                ),
+                CreateStyle(
+                    baseStyle: GUI.skin.button,
+                    tex: TextureStore.YellowTexture,
+                    col: Color.black
+                ),
+                CreateStyle(
+                    baseStyle: GUI.skin.button,
+                    tex: TextureStore.RedTexture,
+                    col: Color.black
+                ),
+                CreateStyle(
+                    baseStyle: GUI.skin.button,
+                    tex: TextureStore.GreenTexture,
+                    col: Color.black
+                ),
+                CreateStyle(
+                    baseStyle: GUI.skin.button,
+                    tex: TextureStore.BlueTexture,
+                    col: Color.black
+                ),
+            ];
+        }
 
-            // Ensure the 2px border is preserved when Unity stretches the background.
-            ToolbarStyle.border = new RectOffset(2, 2, 2, 2);
+        internal static GUIStyle CreateStyle(
+            GUIStyle baseStyle,
+            Texture2D? tex = null,
+            Texture2D? onTex = null,
+            Color? col = null,
+            Color? onCol = null
+        )
+        {
+            GUIStyle style = new(baseStyle);
+            CustomiseStyle(style, tex, onTex, col, onCol);
+            // ensure the 2px border is preserved when Unity stretches the background.
+            style.border = new RectOffset(2, 2, 2, 2);
+            return style;
+        }
+
+        internal static void CustomiseStyle(
+            GUIStyle style,
+            Texture2D? tex = null,
+            Texture2D? onTex = null,
+            Color? col = null,
+            Color? onCol = null
+        )
+        {
+            if (tex is not null)
+            {
+                style.normal.background = tex;
+                style.active.background = tex;
+                style.focused.background = tex;
+                style.hover.background = tex;
+            }
+            if (onTex is not null)
+            {
+                style.onNormal.background = onTex;
+                style.onActive.background = onTex;
+                style.onFocused.background = onTex;
+                style.onHover.background = onTex;
+            }
+            if (col.HasValue)
+            {
+                style.normal.textColor = col.Value;
+                style.hover.textColor = col.Value;
+                style.focused.textColor = col.Value;
+                style.active.textColor = col.Value;
+            }
+            if (onCol.HasValue)
+            {
+                style.onNormal.textColor = onCol.Value;
+                style.onHover.textColor = onCol.Value;
+                style.onFocused.textColor = onCol.Value;
+                style.onActive.textColor = onCol.Value;
+            }
+        }
+
+        internal static void AssignFontColors(GUIStyle style, Color col) { }
+
+        internal static void AssignOnFontColors(GUIStyle style, Color col)
+        {
+            style.normal.textColor = col;
+            style.hover.textColor = col;
+            style.focused.textColor = col;
+            style.active.textColor = col;
         }
 
         internal void ValidateStyles()
         {
             if (!TextureStore.ValidateTextures())
             {
-                ToggleStyle.onNormal.background = TextureStore.ToggleOnTexture;
-                ToggleStyle.onHover.background = TextureStore.ToggleOnTexture;
-                ToggleStyle.onActive.background = TextureStore.ToggleOnTexture;
-                ToggleStyle.onFocused.background = TextureStore.ToggleOnTexture;
-
-                ToggleStyle.normal.background = TextureStore.ToggleOffTexture;
-                ToggleStyle.hover.background = TextureStore.ToggleOffTexture;
-                ToggleStyle.active.background = TextureStore.ToggleOffTexture;
-                ToggleStyle.focused.background = TextureStore.ToggleOffTexture;
-
-                ToggleStyle.border = new RectOffset(2, 2, 2, 2);
-
-                ToolbarStyle.onNormal.background = TextureStore.ToolbarOnTexture;
-                ToolbarStyle.onHover.background = TextureStore.ToolbarOnTexture;
-                ToolbarStyle.onActive.background = TextureStore.ToolbarOnTexture;
-                ToolbarStyle.onFocused.background = TextureStore.ToolbarOnTexture;
-
-                ToolbarStyle.normal.background = TextureStore.ToolbarOffTexture;
-                ToolbarStyle.hover.background = TextureStore.ToolbarOffTexture;
-                ToolbarStyle.active.background = TextureStore.ToolbarOffTexture;
-                ToolbarStyle.focused.background = TextureStore.ToolbarOffTexture;
-
-                ToolbarStyle.border = new RectOffset(2, 2, 2, 2);
+                CustomiseStyle(
+                    ToggleStyle,
+                    tex: TextureStore.RedTexture,
+                    onTex: TextureStore.GreenTexture
+                );
+                CustomiseStyle(
+                    ToolbarStyle,
+                    tex: TextureStore.GrayTexture,
+                    onTex: TextureStore.RedTexture
+                );
+                CustomiseStyle(
+                    GridStyle,
+                    tex: TextureStore.GrayTexture,
+                    onTex: TextureStore.RedTexture
+                );
+                CustomiseStyle(StateStyles[0], tex: TextureStore.GrayTexture);
+                CustomiseStyle(StateStyles[1], tex: TextureStore.YellowTexture);
+                CustomiseStyle(StateStyles[2], tex: TextureStore.RedTexture);
+                CustomiseStyle(StateStyles[3], tex: TextureStore.GreenTexture);
+                CustomiseStyle(StateStyles[4], tex: TextureStore.BlueTexture);
             }
         }
 
         internal GUIStyle ToggleStyle { get; }
-        internal GUIStyle GroupStyle { get; private set; }
-        internal GUIStyle ToolbarStyle { get; private set; }
-
+        internal GUIStyle GroupStyle { get; }
+        internal GUIStyle ToolbarStyle { get; }
+        internal GUIStyle GridStyle { get; }
+        internal GUIStyle[] StateStyles { get; }
         private GUIStyle MinimalPadding { get; }
         internal GUILayoutOption SliderLayout { get; } = GUILayout.Width(200f);
         internal GUILayoutOption WideSliderLayout { get; } = GUILayout.Width(400f);
         internal GUILayoutOption SliderLabelLayout { get; } = GUILayout.MinWidth(60f);
+
+        internal int IncrementButton(
+            in int oldValue,
+            string label,
+            in int max,
+            params GUILayoutOption[] layout
+        )
+        {
+            if (oldValue >= StateStyles.Length)
+            {
+                Main.Logger?.Error("IncrementButton index out of bounds.");
+                return oldValue;
+            }
+            if (GUILayout.Button(label, StateStyles[oldValue], layout))
+                return (oldValue + 1) % max;
+            return oldValue;
+        }
 
         internal float FloatHorizontalSlider(
             in float oldValue,
@@ -190,6 +275,7 @@ namespace TITweaksMod
                 newValue += 0.1f;
             if (GUILayout.Button("+1", MinimalPadding))
                 newValue += 1f;
+            GUILayout.Space(10f);
             GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
             return Mathf.Clamp(reset ? defaultValue!.Value : newValue, min, max);
         }
@@ -212,8 +298,34 @@ namespace TITweaksMod
             newValue += Mathf.RoundToInt(sliderValue);
             if (GUILayout.Button("+1", MinimalPadding))
                 newValue += 1;
+            GUILayout.Space(10f);
             GUILayout.Label(oldValue.ToString("0.0"), SliderLabelLayout);
             return Mathf.Clamp(reset ? defaultValue!.Value : newValue, min, max);
+        }
+
+        internal bool SubtitleToggle(in string label, in bool oldValue)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, UnityModManager.UI.h2);
+            GUILayout.Space(10);
+            bool newValue = GUILayout.Toggle(
+                oldValue,
+                oldValue ? "  Show  " : "  Hide  ",
+                ToolbarStyle
+            );
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            return newValue;
+        }
+
+        internal void TweakSectionLabel(in string label, in int indent = 0)
+        {
+            GUILayout.Space(15);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20 * indent);
+            GUILayout.Label(label);
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
         }
 
         internal bool OnOffToggle(in bool oldValue)
@@ -240,15 +352,13 @@ namespace TITweaksMod
             Context ??= new SettingsUIContext();
             Context.ValidateStyles();
 
-            /// Draw basic layout and title for the mod settings
+            // Draw basic layout and title for the mod settings
             GUILayout.BeginVertical();
-
-            GUILayout.Label($"{modEntry.Info.DisplayName} Mod Settings", UnityModManager.UI.h1);
-            GUILayout.Space(10);
 
             MiningPatches.UI.OnGUI(Main.Settings.mineSettings, Context);
             NationPatches.UI.OnGUI(Main.Settings.nationSettings, Context);
             CombatPatches.UI.OnGUI(Main.Settings.combatSettings, Context);
+            CouncilorPatches.UI.OnGUI(Main.Settings.councilorSettings, Context);
 
             GUILayout.EndVertical();
         }
@@ -263,6 +373,7 @@ namespace TITweaksMod
             if (Main.Settings is null)
                 return;
             MiningPatches.UI.OnHideGUI(Main.Settings.mineSettings);
+            CouncilorPatches.UI.OnHideGUI();
         }
     }
 }
