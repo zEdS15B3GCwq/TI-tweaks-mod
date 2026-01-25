@@ -1,10 +1,10 @@
 ﻿using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
-using PavonisInteractive.TerraInvicta.Entities;
 using UnityEngine;
 using UnityModManagerNet;
 
 /// <summary>
+/// COMMENTS NEED TO BE UPDATED
 /// Patches councilors and missions
 ///
 /// 1. Contested mission outcomes
@@ -65,10 +65,6 @@ namespace TITweaksMod.CouncilorPatches
                 targetFaction
             );
 
-            //Main.Logger?.Log(
-            //    $"GetMissionOutcome PRE>> councilor={councilor.displayName}|faction={councilor.faction.displayName}|target={target}|relevant_faction={mission.target.GetRelevantFaction(target).displayName}|mission={mission.displayName}|OUTCOME={__state}"
-            //);
-
             return true;
         }
 
@@ -76,10 +72,6 @@ namespace TITweaksMod.CouncilorPatches
         {
             if (!Main.enabled || Main.Settings is null)
                 return;
-
-            //Main.Logger?.Log(
-            //    $"GetMissionOutcome POST>> old result={__result.outcome}({__result.roll})|Outcome={__state}"
-            //);
 
             if (__state == MissionOutcome.Default)
                 return;
@@ -103,9 +95,6 @@ namespace TITweaksMod.CouncilorPatches
                     __result.roll = 1f;
                     break;
             }
-            //Main.Logger?.Log(
-            //    $"GetMissionOutcome POST>> new result={__result.outcome}({__result.roll})"
-            //);
         }
     }
 
@@ -129,7 +118,7 @@ namespace TITweaksMod.CouncilorPatches
                     // tweak is disabled
                     return true;
                 case OffPlayerAll.Player:
-                    // tweak is player only, skip player's councilors and non-player detain missions
+                    // skip missions by non-player factions and missions targeting player councilors
                     if (__instance.faction.isActivePlayer || !newDetainingFaction.isActivePlayer)
                         return true;
                     break;
@@ -145,6 +134,27 @@ namespace TITweaksMod.CouncilorPatches
             extendDuration_Turns += settings.LongerDetain_ExtraTurns;
 
             return true;
+        }
+
+        [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.UnTurnCouncilor))]
+        internal static class TICouncilorState_UnTurnCouncilor_Patch
+        {
+            static bool Prefix(TICouncilorState __instance, bool dismissedByTurningFaction)
+            {
+                if (!Main.enabled || Main.Settings is null)
+                    return true;
+                var settings = Main.Settings.councilorSettings;
+                if (
+                    settings.NeverLoseTurnedAgents
+                    && (__instance.agentForFaction?.isActivePlayer ?? false)
+                    && !dismissedByTurningFaction
+                )
+                {
+                    // prevent unturning
+                    return false;
+                }
+                return true;
+            }
         }
     }
 
@@ -193,7 +203,6 @@ namespace TITweaksMod.CouncilorPatches
 
             PlayerFaction = GameStateManager.AllFactions().FirstOrDefault(x => x.isActivePlayer);
             enemyFactions = GameStateManager.AllFactions().Where(f => !f.isActivePlayer).ToArray();
-            //PlayerCouncilors = PlayerFaction is not null ? PlayerFaction.councilors.ToArray() : [];
             PlayerCouncilors = PlayerFaction?.councilors.ToArray() ?? [];
         }
 
@@ -273,12 +282,13 @@ namespace TITweaksMod.CouncilorPatches
             Intel,
             CancelMission,
             Turn,
+            MakeYounger,
         }
 
-        internal static void ApplyOperationToEnemy(
-            Operation ops,
-            TIFactionState? targetFaction,
-            TICouncilorState? targetCouncilor,
+        internal static void ApplyOperation(
+            Operation op,
+            TIFactionState? targetFaction = null,
+            TICouncilorState? targetCouncilor = null,
             bool targetAllEnemyFactions = false
         )
         {
@@ -286,7 +296,7 @@ namespace TITweaksMod.CouncilorPatches
                 return;
 
             // 1. Build the operation based on the UI option
-            Action<TICouncilorState>? op = ops switch
+            Action<TICouncilorState>? opAction = op switch
             {
                 Operation.Kill => c =>
                 {
@@ -306,14 +316,21 @@ namespace TITweaksMod.CouncilorPatches
                     if (PlayerFaction is not null)
                         c.TurnCouncilor(PlayerFaction);
                 },
+                Operation.MakeYounger => c =>
+                {
+                    if (TITimeState.Now() is { } now)
+                    {
+                        var newBirthDate = new TIDateTime(c.dateBorn);
+                        newBirthDate.AddYears(10);
+                        int newAge = (int)now.DifferenceInJulianYears(newBirthDate);
+                        if (newAge >= 10)
+                            c.dateBorn = newBirthDate;
+                    }
+                },
                 _ => null,
             };
 
-            Main.Logger?.Log(
-                $"Target enemy faction: {targetFaction?.displayName ?? "none"}, target enemy councilor: {targetCouncilor?.displayName ?? "none"}, ops = {ops}"
-            );
-
-            if (op is null)
+            if (opAction is null)
                 return;
 
             // 2. Apply to the correct scope
@@ -321,7 +338,7 @@ namespace TITweaksMod.CouncilorPatches
             // individual councilor
             if (targetCouncilor is not null)
             {
-                op(targetCouncilor);
+                opAction(targetCouncilor);
                 return;
             }
 
@@ -333,7 +350,7 @@ namespace TITweaksMod.CouncilorPatches
                 foreach (var c in councilors)
                 {
                     if (c.status == CouncilorStatus.Active)
-                        op(c);
+                        opAction(c);
                 }
                 return;
             }
@@ -348,7 +365,7 @@ namespace TITweaksMod.CouncilorPatches
                     foreach (var c in councilors)
                     {
                         if (c.status == CouncilorStatus.Active)
-                            op(c);
+                            opAction(c);
                     }
                 }
             }
@@ -469,6 +486,7 @@ namespace TITweaksMod.CouncilorPatches
         ];
         private static string[] councilorSelectionLabels = [];
         private static bool firstOnGUI = true;
+        private static bool stateDirty = false;
         private static int selectedCouncilorIndex = 0;
         private static int selectedTraitIndex = 0;
         private static string traitSearchTextLower = string.Empty;
@@ -503,7 +521,7 @@ namespace TITweaksMod.CouncilorPatches
 
         internal static void OnGUI(CouncilorSettings settings, in SettingsUIContext context)
         {
-            if (firstOnGUI)
+            if (firstOnGUI || stateDirty)
             {
                 firstOnGUI = false;
                 CouncilorManager.Update();
@@ -546,9 +564,31 @@ namespace TITweaksMod.CouncilorPatches
                 GUILayout.EndHorizontal();
             }
 
+            // TWEAK: increase detain duration
+            GUILayout.Space(15);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("2. Increase detention duration:");
+            GUILayout.Space(10);
+            settings.LongerDetain_Enabled = (OffPlayerAll)
+                GUILayout.Toolbar(
+                    (int)settings.LongerDetain_Enabled,
+                    OffPlayerAllLabels,
+                    context.ToolbarStyle
+                );
+            GUILayout.FlexibleSpace();
+            GUILayout.Label("Extra turns:");
+            GUILayout.Space(10);
+            settings.LongerDetain_ExtraTurns = context.IntHorizontalSlider(
+                settings.LongerDetain_ExtraTurns,
+                1,
+                20,
+                1
+            );
+            GUILayout.EndHorizontal();
+
             // TWEAK GROUP: Councilor tweaks that target player councilors
             GUILayout.Space(15);
-            GUILayout.Label("2. Apply effect to player councilor(s)");
+            GUILayout.Label("3. Apply effect to player councilor(s)");
 
             // add indentation
             GUILayout.BeginHorizontal();
@@ -573,7 +613,7 @@ namespace TITweaksMod.CouncilorPatches
             // TWEAK: Add XP
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("2.1 Add XP:");
+            GUILayout.Label("3.1 Add XP:");
             GUILayout.Space(10);
             if (GUILayout.Button("10 XP"))
                 CouncilorManager.AddXPToPlayerCouncilor(10, targetCouncilor);
@@ -586,10 +626,22 @@ namespace TITweaksMod.CouncilorPatches
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
+            GUILayout.Space(15);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("3.2 Make younger:");
+            GUILayout.Space(10);
+            if (GUILayout.Button("Take 10 years"))
+                CouncilorManager.ApplyOperation(
+                    op: CouncilorManager.Operation.MakeYounger,
+                    targetCouncilor: targetCouncilor
+                );
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+
             // TWEAK: clear all traits
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("2.2 Clear all traits:");
+            GUILayout.Label("3.3 Clear all traits:");
             GUILayout.Space(10);
             if (GUILayout.Button("Clear"))
                 CouncilorManager.ClearPlayerCouncilorTraits(targetCouncilor);
@@ -599,7 +651,7 @@ namespace TITweaksMod.CouncilorPatches
             // TWEAK: add / remove traits
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("2.3 Add / remove selected trait:");
+            GUILayout.Label("3.4 Add / remove selected trait:");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
@@ -647,28 +699,6 @@ namespace TITweaksMod.CouncilorPatches
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
 
-            // TWEAK: increase detain duration
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("3. Increase detention duration:");
-            GUILayout.Space(10);
-            settings.LongerDetain_Enabled = (OffPlayerAll)
-                GUILayout.Toolbar(
-                    (int)settings.LongerDetain_Enabled,
-                    OffPlayerAllLabels,
-                    context.ToolbarStyle
-                );
-            GUILayout.FlexibleSpace();
-            GUILayout.Label("Extra turns:");
-            GUILayout.Space(10);
-            settings.LongerDetain_ExtraTurns = context.IntHorizontalSlider(
-                settings.LongerDetain_ExtraTurns,
-                1,
-                20,
-                1
-            );
-            GUILayout.EndHorizontal();
-
             // TWEAK GROUP: target enemy councilors
             GUILayout.Space(15);
             GUILayout.Label("4. Apply effect to enemy councilor(s)");
@@ -712,25 +742,13 @@ namespace TITweaksMod.CouncilorPatches
                     targetEnemyFaction = CouncilorManager.enemyFactions[selectedEnemyIndex - 1];
                     break;
             }
-            //if (
-            //    CouncilorManager.otherSelectedCouncilor is not null
-            //    && selectedEnemyIndex == enemySelectionLabels.Length - 1
-            //)
-            //    // individual enemy councilor selected in the game
-            //    targetEnemyCouncilor = CouncilorManager.otherSelectedCouncilor;
-            //else if (selectedEnemyIndex > 0)
-            //    // enemy faction
-            //    targetEnemyFaction = CouncilorManager.enemyFactions[selectedEnemyIndex - 1];
-            //else
-            //    targetAllEnemy = true;
-
             // TWEAK: Max intel on enemy councilors
             GUILayout.Space(15);
             GUILayout.Label("4.1 Select operation (multiple targets allowed):");
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Max Intel"))
-                CouncilorManager.ApplyOperationToEnemy(
+                CouncilorManager.ApplyOperation(
                     CouncilorManager.Operation.Intel,
                     targetEnemyFaction,
                     targetEnemyCouncilor,
@@ -738,7 +756,7 @@ namespace TITweaksMod.CouncilorPatches
                 );
             GUILayout.Space(10);
             if (GUILayout.Button("Detain"))
-                CouncilorManager.ApplyOperationToEnemy(
+                CouncilorManager.ApplyOperation(
                     CouncilorManager.Operation.Detain,
                     targetEnemyFaction,
                     targetEnemyCouncilor,
@@ -746,7 +764,7 @@ namespace TITweaksMod.CouncilorPatches
                 );
             GUILayout.Space(10);
             if (GUILayout.Button("Cancel Mission"))
-                CouncilorManager.ApplyOperationToEnemy(
+                CouncilorManager.ApplyOperation(
                     CouncilorManager.Operation.CancelMission,
                     targetEnemyFaction,
                     targetEnemyCouncilor,
@@ -765,28 +783,28 @@ namespace TITweaksMod.CouncilorPatches
             GUILayout.Space(10);
             if (GUILayout.Button("Kill (by player faction)"))
             {
-                CouncilorManager.ApplyOperationToEnemy(
+                CouncilorManager.ApplyOperation(
                     CouncilorManager.Operation.Kill,
                     null,
                     targetEnemyCouncilor
                 );
-                firstOnGUI = true; // force update as selection has changed
+                stateDirty = true; // force update as selection has changed
             }
             GUILayout.Space(10);
             if (GUILayout.Button("Retire (anonymously)"))
             {
-                CouncilorManager.ApplyOperationToEnemy(
+                CouncilorManager.ApplyOperation(
                     CouncilorManager.Operation.Retire,
                     null,
                     targetEnemyCouncilor
                 );
-                firstOnGUI = true; // force update as selection has changed
+                stateDirty = true; // force update as selection has changed
             }
             GUILayout.Space(10);
             if (cannotTurn)
                 GUI.enabled = false;
             if (GUILayout.Button("Turn"))
-                CouncilorManager.ApplyOperationToEnemy(
+                CouncilorManager.ApplyOperation(
                     CouncilorManager.Operation.Turn,
                     null,
                     targetEnemyCouncilor
@@ -805,6 +823,14 @@ namespace TITweaksMod.CouncilorPatches
             // end indentation
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
+
+            GUILayout.Space(15);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("5. Player's turned agents cannot unturn:");
+            GUILayout.Space(10);
+            settings.NeverLoseTurnedAgents = context.OnOffToggle(settings.NeverLoseTurnedAgents);
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();
         }
@@ -932,5 +958,6 @@ namespace TITweaksMod.CouncilorPatches
         };
         public OffPlayerAll LongerDetain_Enabled = OffPlayerAll.Off;
         public int LongerDetain_ExtraTurns = 1;
+        public bool NeverLoseTurnedAgents = false;
     }
 }
