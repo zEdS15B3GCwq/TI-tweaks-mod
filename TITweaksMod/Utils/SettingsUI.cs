@@ -106,6 +106,20 @@ namespace TITweaksMod
             );
             GridStyle.padding = new RectOffset(3, 4, 4, 3);
 
+            redLabel = CreateStyle(GUI.skin.label, col: Color.red);
+            blueLabel = CreateStyle(
+                GUI.skin.label,
+                tex: TextureStore.BlueTexture,
+                col: Color.black
+            );
+            blueLabel.padding = new RectOffset(10, 10, 5, 5);
+            yellowLabel = CreateStyle(
+                GUI.skin.label,
+                tex: TextureStore.YellowTexture,
+                col: Color.black
+            );
+            yellowLabel.padding = new RectOffset(10, 10, 5, 5);
+
             StateStyles =
             [
                 CreateStyle(
@@ -223,6 +237,8 @@ namespace TITweaksMod
                 CustomiseStyle(StateStyles[2], tex: TextureStore.RedTexture);
                 CustomiseStyle(StateStyles[3], tex: TextureStore.GreenTexture);
                 CustomiseStyle(StateStyles[4], tex: TextureStore.BlueTexture);
+                CustomiseStyle(blueLabel, tex: TextureStore.BlueTexture);
+                CustomiseStyle(yellowLabel, tex: TextureStore.YellowTexture);
             }
         }
 
@@ -232,6 +248,10 @@ namespace TITweaksMod
         internal GUIStyle GridStyle { get; }
         internal GUIStyle[] StateStyles { get; }
         private GUIStyle MinimalPadding { get; }
+
+        internal GUIStyle redLabel { get; }
+        internal GUIStyle blueLabel { get; }
+        internal GUIStyle yellowLabel { get; }
         internal GUILayoutOption SliderLayout { get; } = GUILayout.Width(200f);
         internal GUILayoutOption WideSliderLayout { get; } = GUILayout.Width(400f);
         internal GUILayoutOption SliderLabelLayout { get; } = GUILayout.MinWidth(60f);
@@ -357,7 +377,7 @@ namespace TITweaksMod
 
             MiningPatches.UI.OnGUI(Main.Settings.mineSettings, Context);
             NationPatches.UI.OnGUI(Main.Settings.nationSettings, Context);
-            CombatPatches.UI.OnGUI(Main.Settings.combatSettings, Context);
+            SpaceShipPatches.UI.OnGUI(Main.Settings.combatSettings, Context);
             CouncilorPatches.UI.OnGUI(Main.Settings.councilorSettings, Context);
 
             GUILayout.EndVertical();
@@ -374,6 +394,7 @@ namespace TITweaksMod
                 return;
             MiningPatches.UI.OnHideGUI(Main.Settings.mineSettings);
             CouncilorPatches.UI.OnHideGUI();
+            SpaceShipPatches.UI.OnHideGUI();
         }
     }
 }
