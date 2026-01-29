@@ -366,6 +366,7 @@ namespace TITweaksMod.CouncilorPatches
                     {
                         if (c.status == CouncilorStatus.Active)
                             opAction(c);
+                        Main.Logger?.Log($"{c.displayName}|ref null:{c.ref_councilor is null}");
                     }
                 }
             }
@@ -533,7 +534,8 @@ namespace TITweaksMod.CouncilorPatches
             GUILayout.BeginVertical(context.GroupStyle);
 
             // group label
-            //hidePanel = context.SubtitleToggle("Councilor Tweaks", hidePanel);
+            GUILayout.Label("Councilors and Missions", UnityModManager.UI.h2);
+            //hidePanel = context.SubtitleToggle("Councilors and Missions", hidePanel);
             //if (!hidePanel)
 
             // TWEAK: councilor mission success matrix
@@ -684,6 +686,11 @@ namespace TITweaksMod.CouncilorPatches
             GUILayout.EndHorizontal();
 
             GUILayout.Space(15);
+            GUILayout.Label(
+                "It's possible to add different tiers of the same trait. Who knows, it might break things."
+            );
+
+            GUILayout.Space(15);
             GUILayout.BeginHorizontal();
             GUILayout.Label("Click action:");
             GUILayout.Space(10);
@@ -709,10 +716,13 @@ namespace TITweaksMod.CouncilorPatches
             GUILayout.BeginVertical();
 
             // Select target councilor or faction(s)
-            GUILayout.Space(15);
-            GUILayout.Label(
-                "Select all enemy factions, target faction, or individual enemy councilor selected in the game."
-            );
+            if (CouncilorManager.otherSelectedCouncilor is null)
+            {
+                GUILayout.Space(15);
+                GUILayout.Label(
+                    "(An individual enemy councilor selected in the game will appear here as an option.)"
+                );
+            }
 
             GUILayout.Space(15);
             GUILayout.BeginHorizontal();
@@ -744,7 +754,7 @@ namespace TITweaksMod.CouncilorPatches
             }
             // TWEAK: Max intel on enemy councilors
             GUILayout.Space(15);
-            GUILayout.Label("4.1 Select operation (multiple targets allowed):");
+            GUILayout.Label("4.1 Select operation (multiple or individual targets allowed):");
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Max Intel"))
@@ -814,10 +824,10 @@ namespace TITweaksMod.CouncilorPatches
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             GUILayout.Label(
-                "Kill and Retire only work if an enemy councilor is selected due to some in-game mechanism I have not figured out."
+                "Kill and Retire only work on a selected enemy councilor due to some in-game mechanism I have not figured out."
             );
             GUILayout.Label(
-                "Turn would work on any number of targets, but if >2 are turned, opening the councilor screen crashes the game."
+                "Turn would work on any number of targets, but opening the councilor screen with >2 turned agents crashes the game."
             );
 
             // end indentation

@@ -1,5 +1,9 @@
-﻿using HarmonyLib;
+﻿using System.Net;
+using System.Runtime.InteropServices;
+using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
+using PavonisInteractive.TerraInvicta.GamePlayScript.AI;
+using PavonisInteractive.TerraInvicta.Systems;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -112,9 +116,9 @@ namespace TITweaksMod.NationPatches
             NationSettings settings = Main.Settings.nationSettings;
 
             if (
-                settings.ignoreHostileClaims == ExclusiveTargets.All
+                settings.ignoreHostileClaims == targetsOffPlayerGlobal.All
                 || (
-                    settings.ignoreHostileClaims == ExclusiveTargets.PlayerOnly
+                    settings.ignoreHostileClaims == targetsOffPlayerGlobal.PlayerOnly
                     && __instance.executiveFaction.isActivePlayer
                 )
             )
@@ -132,9 +136,9 @@ namespace TITweaksMod.NationPatches
             NationSettings settings = Main.Settings.nationSettings;
 
             if (
-                settings.ignoreDiploCooldowns == ExclusiveTargets.All
+                settings.ignoreDiploCooldowns == targetsOffPlayerGlobal.All
                 || (
-                    settings.ignoreDiploCooldowns == ExclusiveTargets.PlayerOnly
+                    settings.ignoreDiploCooldowns == targetsOffPlayerGlobal.PlayerOnly
                     && __instance.executiveFaction.isActivePlayer
                 )
             )
@@ -152,9 +156,9 @@ namespace TITweaksMod.NationPatches
             NationSettings settings = Main.Settings.nationSettings;
 
             if (
-                settings.claimAllCapitals == ExclusiveTargets.All
+                settings.claimAllCapitals == targetsOffPlayerGlobal.All
                 || (
-                    settings.claimAllCapitals == ExclusiveTargets.PlayerOnly
+                    settings.claimAllCapitals == targetsOffPlayerGlobal.PlayerOnly
                     && __instance.executiveFaction.isActivePlayer
                 )
             )
@@ -162,7 +166,201 @@ namespace TITweaksMod.NationPatches
         }
     }
 
-    public enum ExclusiveTargets
+    [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetMonthlyIncomeFromHQ))]
+    internal static class TINationState_GetMonthlyIncomeFromHQ_Patch
+    {
+        internal static void Postfix(
+            TIFactionState __instance,
+            ref float __result,
+            FactionResource resource
+        )
+        {
+            if (!Main.enabled || Main.Settings is null || resource != FactionResource.Influence)
+                return;
+
+            var settings = Main.Settings.nationSettings.influenceDrainSettings;
+
+            if (!settings[__instance.templateName])
+                return;
+
+            var oldResult = __result;
+            __result -= 2000;
+            __instance.SetResourceIncomeDataDirty(resource);
+        }
+    }
+
+    [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetDailyIncomeFromHQ))]
+    internal static class TINationState_GetDailyIncomeFromHQ_Patch
+    {
+        internal static void Postfix(
+            TIFactionState __instance,
+            ref float __result,
+            FactionResource resourceType
+        )
+        {
+            if (!Main.enabled || Main.Settings is null || resourceType != FactionResource.Influence)
+                return;
+
+            var settings = Main.Settings.nationSettings.influenceDrainSettings;
+
+            if (!settings[__instance.templateName])
+                return;
+
+            var oldResult = __result;
+            __result -= 66;
+            __instance.SetResourceIncomeDataDirty(resourceType);
+        }
+    }
+
+    [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetYearlyIncomeFromHQ))]
+    internal static class TINationState_GetYearlyIncomeFromHQ_Patch
+    {
+        internal static void Postfix(
+            TIFactionState __instance,
+            ref float __result,
+            FactionResource resourceType
+        )
+        {
+            if (!Main.enabled || Main.Settings is null || resourceType != FactionResource.Influence)
+                return;
+
+            var settings = Main.Settings.nationSettings.influenceDrainSettings;
+
+            if (!settings[__instance.templateName])
+                return;
+
+            var oldResult = __result;
+            __result -= 24000;
+            __instance.SetResourceIncomeDataDirty(resourceType);
+        }
+    }
+
+    internal static class NationManager
+    {
+        internal static TIFactionState[] factions { get; private set; } = [];
+        internal static string[] factionLabels { get; private set; } = [];
+        internal static float[,] hateMatrix { get; private set; } = new float[0, 0];
+        internal static float[,] minimumHateMatrix { get; private set; } = new float[0, 0];
+        internal static float[,] maximumHateMatrix { get; private set; } = new float[0, 0];
+        internal static float[] MCBasedHate { get; private set; } = [];
+        internal static readonly string[] factionTemplateNames =
+        [
+            "ResistCouncil",
+            "DestroyCouncil",
+            "ExploitCouncil",
+            "SubmitCouncil",
+            "AppeaseCouncil",
+            "CooperateCouncil",
+            "EscapeCouncil",
+            "AlienCouncil",
+        ];
+        internal static string[] factionTemplateDisplayNames = new string[
+            factionTemplateNames.Length
+        ];
+
+        //PlayerFaction = GameStateManager.AllFactions().FirstOrDefault(x => x.isActivePlayer);
+        //enemyFactions = GameStateManager.AllFactions().Where(f => !f.isActivePlayer).ToArray();
+
+        private static void UpdateHateMatrices()
+        {
+            var size = factions.Length;
+            if (hateMatrix.GetLength(0) != size || hateMatrix.GetLength(1) != size)
+                hateMatrix = new float[size, size];
+            if (minimumHateMatrix.GetLength(0) != size || minimumHateMatrix.GetLength(1) != size)
+                minimumHateMatrix = new float[size, size];
+            if (maximumHateMatrix.GetLength(0) != size || maximumHateMatrix.GetLength(1) != size)
+                maximumHateMatrix = new float[size, size];
+            for (int i = 0; i < size; i++)
+            {
+                for (int j = 0; j < size; j++)
+                {
+                    if (i == j)
+                    {
+                        hateMatrix[i, j] = 0f;
+                        minimumHateMatrix[i, j] = 0f;
+                        maximumHateMatrix[i, j] = 0f;
+                    }
+                    else
+                    {
+                        hateMatrix[i, j] = factions[i].GetFactionHate(factions[j]);
+                        minimumHateMatrix[i, j] = factions[i].MinimumFactionHate(factions[j]);
+                        maximumHateMatrix[i, j] = factions[i].MaximumFactionHate(factions[j]);
+                    }
+                }
+            }
+        }
+
+        private static void UpdateMCHate()
+        {
+            var size = factions.Length;
+            if (MCBasedHate.Length != size)
+                MCBasedHate = new float[size];
+            if (size > 0)
+            {
+                var aliens = factions.First(c => c.IsAlienFaction);
+                for (int i = 0; i < size; i++)
+                    MCBasedHate[i] = aliens.MCBasedAlienHate(factions[i]);
+            }
+        }
+
+        internal static void Update()
+        {
+            factions = GameStateManager.AllFactions().ToArray();
+            factionLabels = factions.Select(f => f.displayName).ToArray();
+
+            for (int i = 0; i < factionTemplateNames.Length; i++)
+            {
+                factionTemplateDisplayNames[i] =
+                    factions
+                        .FirstOrDefault(f => f.templateName == factionTemplateNames[i])
+                        ?.displayName
+                    ?? "n/a";
+            }
+
+            UpdateHateMatrices();
+            UpdateMCHate();
+        }
+
+        internal static void SetHate(int factionIndex, int enemyIndex, float newHate)
+        {
+            if (
+                factionIndex == enemyIndex
+                || factionIndex < 0
+                || factionIndex >= hateMatrix.GetLength(0)
+                || enemyIndex < 0
+                || enemyIndex >= hateMatrix.GetLength(1)
+            )
+                return;
+            //newHate = Mathf.Clamp(newHate, minimumHateMatrix[factionIndex, enemyIndex], maximumHateMatrix[factionIndex, enemyIndex]);
+            if (newHate < 0)
+                newHate = 0;
+            hateMatrix[factionIndex, enemyIndex] = newHate;
+            factions[factionIndex].SetFactionHate(factions[enemyIndex], newHate);
+        }
+
+        internal static void BurnResourceStores(TIFactionState faction)
+        {
+            FactionResource[] targetResources =
+            [
+                FactionResource.Money,
+                FactionResource.Operations,
+                FactionResource.Influence,
+                FactionResource.Boost,
+                FactionResource.Water,
+                FactionResource.Volatiles,
+                FactionResource.Metals,
+                FactionResource.NobleMetals,
+                FactionResource.Fissiles,
+                FactionResource.Exotics,
+                FactionResource.Antimatter,
+            ];
+            foreach (var resource in targetResources)
+                if (faction.resources.ContainsKey(resource))
+                    faction.resources[resource] = 0f;
+        }
+    }
+
+    public enum targetsOffPlayerGlobal
     {
         Off = 0,
         PlayerOnly = 1,
@@ -171,10 +369,21 @@ namespace TITweaksMod.NationPatches
 
     internal static class UI
     {
-        internal static string[] exclusiveTargetLabels = ["Off", "Player", "Global"];
+        private static bool firstOnGUI = true;
+        internal static string[] targetOffPlayerGlobalLabels = ["Off", "Player", "Global"];
+        internal static (int, int) hateMatrixSelected = default;
+        internal static int selectedFaction = 0;
 
         internal static void OnGUI(NationSettings settings, in SettingsUIContext context)
         {
+            if (firstOnGUI)
+            {
+                firstOnGUI = false;
+                NationManager.Update();
+                if (hateMatrixSelected == default && NationManager.hateMatrix.GetLength(0) > 1)
+                    hateMatrixSelected = (NationManager.hateMatrix.GetLength(0) - 1, 0);
+            }
+
             // group box
             GUILayout.BeginVertical(context.GroupStyle);
             {
@@ -220,10 +429,10 @@ namespace TITweaksMod.NationPatches
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("3. All claims are non-hostile:");
                 GUILayout.Space(10);
-                settings.ignoreHostileClaims = (ExclusiveTargets)
+                settings.ignoreHostileClaims = (targetsOffPlayerGlobal)
                     GUILayout.Toolbar(
                         (int)settings.ignoreHostileClaims,
-                        exclusiveTargetLabels,
+                        targetOffPlayerGlobalLabels,
                         context.ToolbarStyle
                     );
                 GUILayout.EndHorizontal();
@@ -233,10 +442,10 @@ namespace TITweaksMod.NationPatches
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("4. Ignore diplomatic cooldowns:");
                 GUILayout.Space(10);
-                settings.ignoreDiploCooldowns = (ExclusiveTargets)
+                settings.ignoreDiploCooldowns = (targetsOffPlayerGlobal)
                     GUILayout.Toolbar(
                         (int)settings.ignoreDiploCooldowns,
-                        exclusiveTargetLabels,
+                        targetOffPlayerGlobalLabels,
                         context.ToolbarStyle
                     );
                 GUILayout.EndHorizontal();
@@ -246,16 +455,257 @@ namespace TITweaksMod.NationPatches
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("5. Claim on all capitals:");
                 GUILayout.Space(10);
-                settings.claimAllCapitals = (ExclusiveTargets)
+                settings.claimAllCapitals = (targetsOffPlayerGlobal)
                     GUILayout.Toolbar(
                         (int)settings.claimAllCapitals,
-                        exclusiveTargetLabels,
+                        targetOffPlayerGlobalLabels,
                         context.ToolbarStyle
                     );
                 GUILayout.EndHorizontal();
-            }
 
+                var nFactions = NationManager.factionLabels.Length;
+
+                // INFO: MC-based alien hate
+                GUILayout.Space(15);
+                GUILayout.Label("6. MC-based Alien Hate:");
+                GUILayout.Space(10);
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                if (nFactions > 0)
+                {
+                    var width = GUILayout.Width(250f);
+                    var centered = new GUIStyle(GUI.skin.label)
+                    {
+                        alignment = TextAnchor.MiddleCenter,
+                    };
+                    for (int i = 0; i < NationManager.factionLabels.Length; i++)
+                    {
+                        GUILayout.BeginVertical();
+                        GUILayout.Label(NationManager.factionLabels[i], centered, width);
+                        GUILayout.Label(
+                            NationManager.MCBasedHate[i].ToString("0.0"),
+                            centered,
+                            width
+                        );
+                        GUILayout.EndVertical();
+                    }
+                    GUILayout.FlexibleSpace();
+                }
+                else
+                    GUILayout.Label("No factions", context.redLabel);
+                GUILayout.EndHorizontal();
+
+                // TWEAK: set faction hate
+                GUILayout.Space(15);
+                GUILayout.Label("7. Faction Hate:");
+                GUILayout.Space(10);
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                if (nFactions > 0)
+                {
+                    GUILayout.BeginVertical();
+                    {
+                        string[] columnLabels =
+                        [
+                            "faction \\ enemy",
+                            .. NationManager.factionLabels,
+                        ];
+                        hateMatrixSelected = context.Matrix(
+                            rows: nFactions,
+                            cols: nFactions,
+                            columnLabels: columnLabels,
+                            rowLabels: NationManager.factionLabels,
+                            labelFor: (r, c) => NationManager.hateMatrix[r, c].ToString("0.0"),
+                            selected: hateMatrixSelected,
+                            isEnabled: (r, c) => r != c
+                        );
+                        var (r, c) = hateMatrixSelected;
+                        var currentHate = NationManager.hateMatrix[r, c];
+                        var newHate = currentHate;
+
+                        GUILayout.Space(15);
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label(
+                            $"Hate from \"{NationManager.factionLabels[r]}\" towards \"{NationManager.factionLabels[c]}\" "
+                                + $"(min: {NationManager.minimumHateMatrix[r, c]}, max: {NationManager.maximumHateMatrix[r, c]}):"
+                        );
+                        GUILayout.Space(10);
+                        GUILayout.Label($"{newHate:0.0}", context.yellowLabel);
+                        GUILayout.FlexibleSpace();
+                        GUILayout.EndHorizontal();
+
+                        GUILayout.Space(10);
+                        GUILayout.BeginHorizontal();
+                        if (GUILayout.Button("Set to 0"))
+                            newHate = 0;
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("Set to minimum"))
+                            newHate = NationManager.minimumHateMatrix[r, c];
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("-100"))
+                            newHate -= 100;
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("-10"))
+                            newHate -= 10;
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("+10"))
+                            newHate += 10;
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("+100"))
+                            newHate += 100;
+                        GUILayout.FlexibleSpace();
+                        GUILayout.EndHorizontal();
+
+                        if (newHate != currentHate)
+                            NationManager.SetHate(r, c, newHate);
+                    }
+                    GUILayout.EndVertical();
+                }
+                else
+                {
+                    GUILayout.Label("No factions", context.redLabel);
+                }
+                GUILayout.EndHorizontal();
+
+                // TWEAK: set nation resources
+                GUILayout.Space(15);
+                GUILayout.Label("8. Empty resource stores:");
+                GUILayout.Space(10);
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                if (nFactions > 0)
+                {
+                    GUILayout.BeginVertical();
+
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("Select faction:");
+                    GUILayout.Space(5);
+                    selectedFaction = GUILayout.Toolbar(
+                        selectedFaction,
+                        NationManager.factionLabels,
+                        context.ToolbarStyle
+                    );
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("Burn Resources"))
+                        NationManager.BurnResourceStores(NationManager.factions[selectedFaction]);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.EndVertical();
+                }
+                else
+                    GUILayout.Label("No factions", context.redLabel);
+                GUILayout.EndHorizontal();
+
+                // TWEAK: influence drain
+                GUILayout.Space(15);
+                GUILayout.Label("9. Enable substantial influence drain for faction:");
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.BeginVertical();
+                {
+                    GUILayout.Label(
+                        "This setting will only apply to a faction if that faction is present in the current game."
+                    );
+
+                    GUILayout.Space(15);
+
+                    GUILayout.BeginHorizontal();
+                    for (int i = 0, j = 0; i < NationManager.factionTemplateNames.Length; i++)
+                    {
+                        if (j > 0)
+                            GUILayout.Space(5);
+                        if (j == 2)
+                        {
+                            GUILayout.EndHorizontal();
+                            GUILayout.Space(5);
+                            GUILayout.BeginHorizontal();
+                            j = 0;
+                        }
+                        var name = NationManager.factionTemplateNames[i];
+                        settings.influenceDrainSettings[name] = GUILayout.Toggle(
+                            settings.influenceDrainSettings[name],
+                            $"{NationManager.factionTemplateDisplayNames[i]} ({name})",
+                            context.ToggleStyle
+                        );
+                        j++;
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                GUILayout.EndVertical();
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+            }
             GUILayout.EndVertical();
+        }
+
+        internal static void OnHideGUI()
+        {
+            firstOnGUI = true;
+        }
+    }
+
+    public class InfluenceDrainSettings
+    {
+        public bool ResistCouncil_Enabled = false;
+        public bool DestroyCouncil_Enabled = false;
+        public bool ExploitCouncil_Enabled = false;
+        public bool SubmitCouncil_Enabled = false;
+        public bool AppeaseCouncil_Enabled = false;
+        public bool CooperateCouncil_Enabled = false;
+        public bool EscapeCouncil_Enabled = false;
+        public bool AlienCouncil_Enabled = false;
+
+        public bool this[string name]
+        {
+            get =>
+                name switch
+                {
+                    "ResistCouncil" => ResistCouncil_Enabled,
+                    "DestroyCouncil" => DestroyCouncil_Enabled,
+                    "ExploitCouncil" => ExploitCouncil_Enabled,
+                    "SubmitCouncil" => SubmitCouncil_Enabled,
+                    "AppeaseCouncil" => AppeaseCouncil_Enabled,
+                    "CooperateCouncil" => CooperateCouncil_Enabled,
+                    "EscapeCouncil" => EscapeCouncil_Enabled,
+                    "AlienCouncil" => AlienCouncil_Enabled,
+                    _ => false,
+                };
+            set
+            {
+                switch (name)
+                {
+                    case "ResistCouncil":
+                        ResistCouncil_Enabled = value;
+                        break;
+                    case "DestroyCouncil":
+                        DestroyCouncil_Enabled = value;
+                        break;
+                    case "ExploitCouncil":
+                        ExploitCouncil_Enabled = value;
+                        break;
+                    case "SubmitCouncil":
+                        SubmitCouncil_Enabled = value;
+                        break;
+                    case "AppeaseCouncil":
+                        AppeaseCouncil_Enabled = value;
+                        break;
+                    case "CooperateCouncil":
+                        CooperateCouncil_Enabled = value;
+                        break;
+                    case "EscapeCouncil":
+                        EscapeCouncil_Enabled = value;
+                        break;
+                    case "AlienCouncil":
+                        AlienCouncil_Enabled = value;
+                        break;
+                }
+            }
         }
     }
 
@@ -265,8 +715,9 @@ namespace TITweaksMod.NationPatches
         public float unrestOffset = 0f;
         public bool cohesionOffset_Enable = false;
         public float cohesionOffset = 0f;
-        public ExclusiveTargets ignoreHostileClaims = ExclusiveTargets.Off;
-        public ExclusiveTargets ignoreDiploCooldowns = ExclusiveTargets.Off;
-        public ExclusiveTargets claimAllCapitals = ExclusiveTargets.Off;
+        public targetsOffPlayerGlobal ignoreHostileClaims = targetsOffPlayerGlobal.Off;
+        public targetsOffPlayerGlobal ignoreDiploCooldowns = targetsOffPlayerGlobal.Off;
+        public targetsOffPlayerGlobal claimAllCapitals = targetsOffPlayerGlobal.Off;
+        public InfluenceDrainSettings influenceDrainSettings = new InfluenceDrainSettings();
     }
 }

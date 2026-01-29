@@ -352,6 +352,77 @@ namespace TITweaksMod
         {
             return GUILayout.Toggle(oldValue, oldValue ? "  on  " : "  off  ", ToggleStyle);
         }
+
+        internal (int, int) Matrix(
+            int rows,
+            int cols,
+            string[] columnLabels,
+            string[] rowLabels,
+            Func<int, int, string> labelFor,
+            (int, int) selected = default,
+            Func<int, int, bool>? isEnabled = null,
+            GUIStyle? buttonStyle = null
+        )
+        {
+            var columnWidth = GUILayout.Width(200f);
+            var centered = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
+
+            GUILayout.BeginVertical();
+            {
+                // column labels
+                GUILayout.BeginHorizontal();
+                foreach (var label in columnLabels)
+                    GUILayout.Label(label, centered, columnWidth);
+                GUILayout.EndHorizontal();
+
+                // rows
+                GUILayout.BeginHorizontal();
+                {
+                    // row labels
+                    GUILayout.BeginVertical();
+                    foreach (var label in rowLabels)
+                        GUILayout.Label(label, centered, columnWidth);
+                    GUILayout.EndVertical();
+
+                    // cells
+                    GUILayout.BeginVertical();
+                    for (int r = 0; r < rows; r++)
+                    {
+                        GUILayout.BeginHorizontal();
+                        for (int c = 0; c < cols; c++)
+                        {
+                            bool enabled = isEnabled?.Invoke(r, c) ?? true;
+                            string label = labelFor.Invoke(r, c);
+                            bool active = selected == (r, c);
+
+                            if (!enabled)
+                                GUI.enabled = false;
+
+                            if (
+                                GUILayout.Toggle(
+                                    active,
+                                    label,
+                                    buttonStyle ?? GridStyle,
+                                    columnWidth
+                                )
+                            )
+                                selected = (r, c);
+
+                            if (!enabled)
+                                GUI.enabled = true;
+                        }
+                        GUILayout.EndHorizontal();
+                    }
+                    GUILayout.EndVertical();
+
+                    GUILayout.FlexibleSpace();
+                }
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.EndVertical();
+
+            return selected;
+        }
     }
 
     internal static class SettingsUI
@@ -392,6 +463,7 @@ namespace TITweaksMod
         {
             if (Main.Settings is null)
                 return;
+            NationPatches.UI.OnHideGUI();
             MiningPatches.UI.OnHideGUI(Main.Settings.mineSettings);
             CouncilorPatches.UI.OnHideGUI();
             SpaceShipPatches.UI.OnHideGUI();
