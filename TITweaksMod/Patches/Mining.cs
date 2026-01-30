@@ -183,7 +183,7 @@ namespace TITweaksMod.MiningPatches
         /// </summary>
         /// <param name="settings">Mining related mod settings.</param>
         /// <param name="context">Context holding default UI styles and helper functions.</param>
-        internal static void OnGUI(MiningSettings settings, in SettingsUIContext context)
+        internal static void OnGUI(MiningSettings settings, in SettingsUIContext context, bool show)
         {
             if (firstFrame)
             {
@@ -194,96 +194,99 @@ namespace TITweaksMod.MiningPatches
                 firstFrame = false;
             }
 
-            // box group
-            GUILayout.BeginVertical(context.GroupStyle);
-
-            // group label
-            GUILayout.Label("Mining", UnityModManager.UI.h2);
-
-            // TWEAK: linear cost per mine above free cap
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("1. Linear mine MC cost above free limit:");
-            GUILayout.Space(10);
-            settings.linearMineMCCost_Enabled = context.OnOffToggle(
-                settings.linearMineMCCost_Enabled
-            );
-            GUILayout.FlexibleSpace();
-            GUILayout.Label("Cost per mine:");
-            settings.linearMineMCCost = context.IntHorizontalSlider(
-                settings.linearMineMCCost,
-                1,
-                15
-            );
-            GUILayout.EndHorizontal();
-
-            // TWEAK: global mine cost multiplier
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("2. Global mine MC cost multiplier:");
-            GUILayout.Space(10);
-            settings.globalMineMCCostMultiplier_Enabled = context.OnOffToggle(
-                settings.globalMineMCCostMultiplier_Enabled
-            );
-            GUILayout.FlexibleSpace();
-            settings.globalMineMCCostMultiplier = context.FloatHorizontalSlider(
-                settings.globalMineMCCostMultiplier,
-                0f,
-                2f,
-                1f
-            );
-            GUILayout.EndHorizontal();
-
-            // TWEAK: global mine productivity multiplier
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("3. Mine productivity multiplier:");
-            GUILayout.Space(10);
-            TargetGroups oldTargets = settings.globalMineProductionMultiplier_Targets;
-            TargetGroups newTargets = TargetGroups.None;
-            if (
-                GUILayout.Toggle(
-                    (oldTargets & TargetGroups.Player) != 0,
-                    "Player",
-                    context.ToggleStyle
-                )
-            )
+            if (show)
             {
-                newTargets |= TargetGroups.Player;
-            }
-            GUILayout.Space(5);
-            if (
-                GUILayout.Toggle(
-                    (oldTargets & TargetGroups.Humans) != 0,
-                    "Other Humans",
-                    context.ToggleStyle
-                )
-            )
-            {
-                newTargets |= TargetGroups.Humans;
-            }
-            GUILayout.Space(5);
-            if (
-                GUILayout.Toggle(
-                    (oldTargets & TargetGroups.Aliens) != 0,
-                    "Aliens",
-                    context.ToggleStyle
-                )
-            )
-            {
-                newTargets |= TargetGroups.Aliens;
-            }
-            settings.globalMineProductionMultiplier_Targets = newTargets;
-            GUILayout.FlexibleSpace();
-            settings.globalMineProductionMultiplier = context.FloatHorizontalSlider(
-                settings.globalMineProductionMultiplier,
-                0f,
-                10f,
-                1f
-            );
-            GUILayout.EndHorizontal();
+                // box group
+                GUILayout.BeginVertical(context.GroupStyle);
 
-            GUILayout.EndVertical();
+                // group label
+                GUILayout.Label("Mining", UnityModManager.UI.h2);
+
+                // TWEAK: linear cost per mine above free cap
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("1. Linear mine MC cost above free limit:");
+                GUILayout.Space(10);
+                settings.linearMineMCCost_Enabled = context.OnOffToggle(
+                    settings.linearMineMCCost_Enabled
+                );
+                GUILayout.FlexibleSpace();
+                GUILayout.Label("Cost per mine:");
+                settings.linearMineMCCost = context.IntHorizontalSlider(
+                    settings.linearMineMCCost,
+                    1,
+                    15
+                );
+                GUILayout.EndHorizontal();
+
+                // TWEAK: global mine cost multiplier
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("2. Global mine MC cost multiplier:");
+                GUILayout.Space(10);
+                settings.globalMineMCCostMultiplier_Enabled = context.OnOffToggle(
+                    settings.globalMineMCCostMultiplier_Enabled
+                );
+                GUILayout.FlexibleSpace();
+                settings.globalMineMCCostMultiplier = context.FloatHorizontalSlider(
+                    settings.globalMineMCCostMultiplier,
+                    0f,
+                    2f,
+                    1f
+                );
+                GUILayout.EndHorizontal();
+
+                // TWEAK: global mine productivity multiplier
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("3. Mine productivity multiplier:");
+                GUILayout.Space(10);
+                TargetGroups oldTargets = settings.globalMineProductionMultiplier_Targets;
+                TargetGroups newTargets = TargetGroups.None;
+                if (
+                    GUILayout.Toggle(
+                        (oldTargets & TargetGroups.Player) != 0,
+                        "Player",
+                        context.ToggleStyle
+                    )
+                )
+                {
+                    newTargets |= TargetGroups.Player;
+                }
+                GUILayout.Space(5);
+                if (
+                    GUILayout.Toggle(
+                        (oldTargets & TargetGroups.Humans) != 0,
+                        "Other Humans",
+                        context.ToggleStyle
+                    )
+                )
+                {
+                    newTargets |= TargetGroups.Humans;
+                }
+                GUILayout.Space(5);
+                if (
+                    GUILayout.Toggle(
+                        (oldTargets & TargetGroups.Aliens) != 0,
+                        "Aliens",
+                        context.ToggleStyle
+                    )
+                )
+                {
+                    newTargets |= TargetGroups.Aliens;
+                }
+                settings.globalMineProductionMultiplier_Targets = newTargets;
+                GUILayout.FlexibleSpace();
+                settings.globalMineProductionMultiplier = context.FloatHorizontalSlider(
+                    settings.globalMineProductionMultiplier,
+                    0f,
+                    10f,
+                    1f
+                );
+                GUILayout.EndHorizontal();
+
+                GUILayout.EndVertical();
+            }
         }
 
         internal static void OnHideGUI(MiningSettings settings)

@@ -374,7 +374,7 @@ namespace TITweaksMod.NationPatches
         internal static (int, int) hateMatrixSelected = default;
         internal static int selectedFaction = 0;
 
-        internal static void OnGUI(NationSettings settings, in SettingsUIContext context)
+        internal static void OnGUI(NationSettings settings, in SettingsUIContext context, bool show)
         {
             if (firstOnGUI)
             {
@@ -384,264 +384,272 @@ namespace TITweaksMod.NationPatches
                     hateMatrixSelected = (NationManager.hateMatrix.GetLength(0) - 1, 0);
             }
 
-            // group box
-            GUILayout.BeginVertical(context.GroupStyle);
+            if (show)
             {
-                // group label
-                GUILayout.Label("Nation / Diplomacy", UnityModManager.UI.h2);
-
-                // TWEAK: shift base unrest
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("1. Unrest rest state offset:");
-                GUILayout.Space(5);
-                settings.unrestOffset_Enable = context.OnOffToggle(settings.unrestOffset_Enable);
-                GUILayout.FlexibleSpace();
-                settings.unrestOffset = context.FloatHorizontalSlider(
-                    settings.unrestOffset,
-                    -10f,
-                    10f,
-                    0f,
-                    context.WideSliderLayout
-                );
-                GUILayout.EndHorizontal();
-
-                // TWEAK: shift base cohesion
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("2. Cohesion rest state offset:");
-                GUILayout.Space(5);
-                settings.cohesionOffset_Enable = context.OnOffToggle(
-                    settings.cohesionOffset_Enable
-                );
-                GUILayout.FlexibleSpace();
-                settings.cohesionOffset = context.FloatHorizontalSlider(
-                    settings.cohesionOffset,
-                    -10f,
-                    10f,
-                    0f,
-                    context.WideSliderLayout
-                );
-                GUILayout.EndHorizontal();
-
-                // TWEAK: ignore hostile claims
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("3. All claims are non-hostile:");
-                GUILayout.Space(10);
-                settings.ignoreHostileClaims = (targetsOffPlayerGlobal)
-                    GUILayout.Toolbar(
-                        (int)settings.ignoreHostileClaims,
-                        targetOffPlayerGlobalLabels,
-                        context.ToolbarStyle
-                    );
-                GUILayout.EndHorizontal();
-
-                // TWEAK: ignore diplomatic cooldowns
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("4. Ignore diplomatic cooldowns:");
-                GUILayout.Space(10);
-                settings.ignoreDiploCooldowns = (targetsOffPlayerGlobal)
-                    GUILayout.Toolbar(
-                        (int)settings.ignoreDiploCooldowns,
-                        targetOffPlayerGlobalLabels,
-                        context.ToolbarStyle
-                    );
-                GUILayout.EndHorizontal();
-
-                // TWEAK: claim on all capitals
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("5. Claim on all capitals:");
-                GUILayout.Space(10);
-                settings.claimAllCapitals = (targetsOffPlayerGlobal)
-                    GUILayout.Toolbar(
-                        (int)settings.claimAllCapitals,
-                        targetOffPlayerGlobalLabels,
-                        context.ToolbarStyle
-                    );
-                GUILayout.EndHorizontal();
-
-                var nFactions = NationManager.factionLabels.Length;
-
-                // INFO: MC-based alien hate
-                GUILayout.Space(15);
-                GUILayout.Label("6. MC-based Alien Hate:");
-                GUILayout.Space(10);
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                if (nFactions > 0)
+                // group box
+                GUILayout.BeginVertical(context.GroupStyle);
                 {
-                    var width = GUILayout.Width(250f);
-                    var centered = new GUIStyle(GUI.skin.label)
+                    // group label
+                    GUILayout.Label("Nation / Diplomacy", UnityModManager.UI.h2);
+
+                    // TWEAK: shift base unrest
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("1. Unrest rest state offset:");
+                    GUILayout.Space(5);
+                    settings.unrestOffset_Enable = context.OnOffToggle(
+                        settings.unrestOffset_Enable
+                    );
+                    GUILayout.FlexibleSpace();
+                    settings.unrestOffset = context.FloatHorizontalSlider(
+                        settings.unrestOffset,
+                        -10f,
+                        10f,
+                        0f,
+                        context.WideSliderLayout
+                    );
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: shift base cohesion
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("2. Cohesion rest state offset:");
+                    GUILayout.Space(5);
+                    settings.cohesionOffset_Enable = context.OnOffToggle(
+                        settings.cohesionOffset_Enable
+                    );
+                    GUILayout.FlexibleSpace();
+                    settings.cohesionOffset = context.FloatHorizontalSlider(
+                        settings.cohesionOffset,
+                        -10f,
+                        10f,
+                        0f,
+                        context.WideSliderLayout
+                    );
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: ignore hostile claims
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("3. All claims are non-hostile:");
+                    GUILayout.FlexibleSpace();
+                    settings.ignoreHostileClaims = (targetsOffPlayerGlobal)
+                        GUILayout.Toolbar(
+                            (int)settings.ignoreHostileClaims,
+                            targetOffPlayerGlobalLabels,
+                            context.ToolbarStyle
+                        );
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: ignore diplomatic cooldowns
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("4. Ignore diplomatic cooldowns:");
+                    GUILayout.FlexibleSpace();
+                    settings.ignoreDiploCooldowns = (targetsOffPlayerGlobal)
+                        GUILayout.Toolbar(
+                            (int)settings.ignoreDiploCooldowns,
+                            targetOffPlayerGlobalLabels,
+                            context.ToolbarStyle
+                        );
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: claim on all capitals
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("5. Claim on all capitals:");
+                    GUILayout.FlexibleSpace();
+                    settings.claimAllCapitals = (targetsOffPlayerGlobal)
+                        GUILayout.Toolbar(
+                            (int)settings.claimAllCapitals,
+                            targetOffPlayerGlobalLabels,
+                            context.ToolbarStyle
+                        );
+                    GUILayout.EndHorizontal();
+
+                    var nFactions = NationManager.factionLabels.Length;
+
+                    // INFO: MC-based alien hate
+                    GUILayout.Space(15);
+                    GUILayout.Label("6. MC-based Alien Hate:");
+                    GUILayout.Space(10);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    if (nFactions > 0)
                     {
-                        alignment = TextAnchor.MiddleCenter,
-                    };
-                    for (int i = 0; i < NationManager.factionLabels.Length; i++)
+                        var width = GUILayout.Width(200f);
+                        var centered = new GUIStyle(GUI.skin.label)
+                        {
+                            alignment = TextAnchor.MiddleCenter,
+                        };
+                        for (int i = 0; i < NationManager.factionLabels.Length; i++)
+                        {
+                            GUILayout.BeginVertical();
+                            GUILayout.Label(NationManager.factionLabels[i], centered, width);
+                            GUILayout.Label(
+                                NationManager.MCBasedHate[i].ToString("0.0"),
+                                centered,
+                                width
+                            );
+                            GUILayout.EndVertical();
+                        }
+                        GUILayout.FlexibleSpace();
+                    }
+                    else
+                        GUILayout.Label("No factions", context.redLabel);
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: set faction hate
+                    GUILayout.Space(15);
+                    GUILayout.Label("7. Faction Hate:");
+                    GUILayout.Space(10);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    if (nFactions > 0)
                     {
                         GUILayout.BeginVertical();
-                        GUILayout.Label(NationManager.factionLabels[i], centered, width);
-                        GUILayout.Label(
-                            NationManager.MCBasedHate[i].ToString("0.0"),
-                            centered,
-                            width
-                        );
+                        {
+                            string[] columnLabels =
+                            [
+                                "faction \\ enemy",
+                                .. NationManager.factionLabels,
+                            ];
+                            hateMatrixSelected = context.Matrix(
+                                rows: nFactions,
+                                cols: nFactions,
+                                columnLabels: columnLabels,
+                                rowLabels: NationManager.factionLabels,
+                                labelFor: (r, c) => NationManager.hateMatrix[r, c].ToString("0.0"),
+                                selected: hateMatrixSelected,
+                                isEnabled: (r, c) => r != c
+                            );
+                            var (r, c) = hateMatrixSelected;
+                            var currentHate = NationManager.hateMatrix[r, c];
+                            var newHate = currentHate;
+
+                            GUILayout.Space(15);
+                            GUILayout.BeginHorizontal();
+                            GUILayout.Label(
+                                $"Hate from \"{NationManager.factionLabels[r]}\" towards \"{NationManager.factionLabels[c]}\" "
+                                    + $"(min: {NationManager.minimumHateMatrix[r, c]}, max: {NationManager.maximumHateMatrix[r, c]}):"
+                            );
+                            GUILayout.Space(10);
+                            GUILayout.Label($"{newHate:0.0}", context.yellowLabel);
+                            GUILayout.FlexibleSpace();
+                            GUILayout.EndHorizontal();
+
+                            GUILayout.Space(10);
+                            GUILayout.BeginHorizontal();
+                            if (GUILayout.Button("Set to 0"))
+                                newHate = 0;
+                            GUILayout.Space(5);
+                            if (GUILayout.Button("Set to minimum"))
+                                newHate = NationManager.minimumHateMatrix[r, c];
+                            GUILayout.Space(5);
+                            if (GUILayout.Button("-100"))
+                                newHate -= 100;
+                            GUILayout.Space(5);
+                            if (GUILayout.Button("-10"))
+                                newHate -= 10;
+                            GUILayout.Space(5);
+                            if (GUILayout.Button("+10"))
+                                newHate += 10;
+                            GUILayout.Space(5);
+                            if (GUILayout.Button("+100"))
+                                newHate += 100;
+                            GUILayout.FlexibleSpace();
+                            GUILayout.EndHorizontal();
+
+                            if (newHate != currentHate)
+                                NationManager.SetHate(r, c, newHate);
+                        }
                         GUILayout.EndVertical();
                     }
-                    GUILayout.FlexibleSpace();
-                }
-                else
-                    GUILayout.Label("No factions", context.redLabel);
-                GUILayout.EndHorizontal();
-
-                // TWEAK: set faction hate
-                GUILayout.Space(15);
-                GUILayout.Label("7. Faction Hate:");
-                GUILayout.Space(10);
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                if (nFactions > 0)
-                {
-                    GUILayout.BeginVertical();
+                    else
                     {
-                        string[] columnLabels =
-                        [
-                            "faction \\ enemy",
-                            .. NationManager.factionLabels,
-                        ];
-                        hateMatrixSelected = context.Matrix(
-                            rows: nFactions,
-                            cols: nFactions,
-                            columnLabels: columnLabels,
-                            rowLabels: NationManager.factionLabels,
-                            labelFor: (r, c) => NationManager.hateMatrix[r, c].ToString("0.0"),
-                            selected: hateMatrixSelected,
-                            isEnabled: (r, c) => r != c
+                        GUILayout.Label("No factions", context.redLabel);
+                    }
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: set nation resources
+                    GUILayout.Space(15);
+                    GUILayout.Label("8. Empty resource stores:");
+                    GUILayout.Space(10);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    if (nFactions > 0)
+                    {
+                        GUILayout.BeginVertical();
+
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label("Select faction:");
+                        GUILayout.Space(5);
+                        selectedFaction = GUILayout.SelectionGrid(
+                            selectedFaction,
+                            NationManager.factionLabels,
+                            4,
+                            context.ToolbarStyle
                         );
-                        var (r, c) = hateMatrixSelected;
-                        var currentHate = NationManager.hateMatrix[r, c];
-                        var newHate = currentHate;
+                        GUILayout.FlexibleSpace();
+                        GUILayout.EndHorizontal();
 
                         GUILayout.Space(15);
                         GUILayout.BeginHorizontal();
-                        GUILayout.Label(
-                            $"Hate from \"{NationManager.factionLabels[r]}\" towards \"{NationManager.factionLabels[c]}\" "
-                                + $"(min: {NationManager.minimumHateMatrix[r, c]}, max: {NationManager.maximumHateMatrix[r, c]}):"
-                        );
-                        GUILayout.Space(10);
-                        GUILayout.Label($"{newHate:0.0}", context.yellowLabel);
+                        if (GUILayout.Button("Burn Resources"))
+                            NationManager.BurnResourceStores(
+                                NationManager.factions[selectedFaction]
+                            );
                         GUILayout.FlexibleSpace();
                         GUILayout.EndHorizontal();
 
-                        GUILayout.Space(10);
-                        GUILayout.BeginHorizontal();
-                        if (GUILayout.Button("Set to 0"))
-                            newHate = 0;
-                        GUILayout.Space(5);
-                        if (GUILayout.Button("Set to minimum"))
-                            newHate = NationManager.minimumHateMatrix[r, c];
-                        GUILayout.Space(5);
-                        if (GUILayout.Button("-100"))
-                            newHate -= 100;
-                        GUILayout.Space(5);
-                        if (GUILayout.Button("-10"))
-                            newHate -= 10;
-                        GUILayout.Space(5);
-                        if (GUILayout.Button("+10"))
-                            newHate += 10;
-                        GUILayout.Space(5);
-                        if (GUILayout.Button("+100"))
-                            newHate += 100;
-                        GUILayout.FlexibleSpace();
-                        GUILayout.EndHorizontal();
-
-                        if (newHate != currentHate)
-                            NationManager.SetHate(r, c, newHate);
+                        GUILayout.EndVertical();
                     }
-                    GUILayout.EndVertical();
-                }
-                else
-                {
-                    GUILayout.Label("No factions", context.redLabel);
-                }
-                GUILayout.EndHorizontal();
+                    else
+                        GUILayout.Label("No factions", context.redLabel);
+                    GUILayout.EndHorizontal();
 
-                // TWEAK: set nation resources
-                GUILayout.Space(15);
-                GUILayout.Label("8. Empty resource stores:");
-                GUILayout.Space(10);
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                if (nFactions > 0)
-                {
+                    // TWEAK: influence drain
+                    GUILayout.Space(15);
+                    GUILayout.Label("9. Enable substantial influence drain for faction:");
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
                     GUILayout.BeginVertical();
-
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label("Select faction:");
-                    GUILayout.Space(5);
-                    selectedFaction = GUILayout.Toolbar(
-                        selectedFaction,
-                        NationManager.factionLabels,
-                        context.ToolbarStyle
-                    );
-                    GUILayout.FlexibleSpace();
-                    GUILayout.EndHorizontal();
-
-                    GUILayout.Space(15);
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("Burn Resources"))
-                        NationManager.BurnResourceStores(NationManager.factions[selectedFaction]);
-                    GUILayout.FlexibleSpace();
-                    GUILayout.EndHorizontal();
-
-                    GUILayout.EndVertical();
-                }
-                else
-                    GUILayout.Label("No factions", context.redLabel);
-                GUILayout.EndHorizontal();
-
-                // TWEAK: influence drain
-                GUILayout.Space(15);
-                GUILayout.Label("9. Enable substantial influence drain for faction:");
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                GUILayout.BeginVertical();
-                {
-                    GUILayout.Label(
-                        "This setting will only apply to a faction if that faction is present in the current game."
-                    );
-
-                    GUILayout.Space(15);
-
-                    GUILayout.BeginHorizontal();
-                    for (int i = 0, j = 0; i < NationManager.factionTemplateNames.Length; i++)
                     {
-                        if (j > 0)
-                            GUILayout.Space(5);
-                        if (j == 2)
-                        {
-                            GUILayout.EndHorizontal();
-                            GUILayout.Space(5);
-                            GUILayout.BeginHorizontal();
-                            j = 0;
-                        }
-                        var name = NationManager.factionTemplateNames[i];
-                        settings.influenceDrainSettings[name] = GUILayout.Toggle(
-                            settings.influenceDrainSettings[name],
-                            $"{NationManager.factionTemplateDisplayNames[i]} ({name})",
-                            context.ToggleStyle
+                        GUILayout.Label(
+                            "This setting will only apply to a faction if that faction is present in the current game."
                         );
-                        j++;
+
+                        GUILayout.Space(15);
+
+                        GUILayout.BeginHorizontal();
+                        for (int i = 0, j = 0; i < NationManager.factionTemplateNames.Length; i++)
+                        {
+                            if (j > 0)
+                                GUILayout.Space(5);
+                            if (j == 3)
+                            {
+                                GUILayout.EndHorizontal();
+                                GUILayout.Space(5);
+                                GUILayout.BeginHorizontal();
+                                j = 0;
+                            }
+                            var name = NationManager.factionTemplateNames[i];
+                            settings.influenceDrainSettings[name] = GUILayout.Toggle(
+                                settings.influenceDrainSettings[name],
+                                $"{NationManager.factionTemplateDisplayNames[i]} ({name})",
+                                context.ToggleStyle
+                            );
+                            j++;
+                        }
+                        GUILayout.EndHorizontal();
                     }
+                    GUILayout.EndVertical();
+                    GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
                 }
                 GUILayout.EndVertical();
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
             }
-            GUILayout.EndVertical();
         }
 
         internal static void OnHideGUI()

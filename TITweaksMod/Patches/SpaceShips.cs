@@ -280,106 +280,110 @@ namespace TITweaksMod.SpaceShipPatches
     {
         internal static bool firstOnGUI = true;
 
-        internal static void OnGUI(CombatSettings settings, in SettingsUIContext context)
+        internal static void OnGUI(CombatSettings settings, in SettingsUIContext context, bool show)
         {
             if (firstOnGUI)
             {
                 firstOnGUI = false;
                 FleetManager.Update();
             }
-            // group box
-            GUILayout.BeginVertical(context.GroupStyle);
+
+            if (show)
             {
-                // group label
-                GUILayout.Label("Space Fleets and Combat", UnityModManager.UI.h2);
-
-                // TWEAK: disable combat damage to player ships
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("1. Player ship invulnerability:");
-                GUILayout.Space(5);
-                settings.playerShipsInvulnerable = context.OnOffToggle(
-                    settings.playerShipsInvulnerable
-                );
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-
-                // TWEAK: multiply damage dealt by player ships
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("2. Multiply damage dealt by player ships:");
-                GUILayout.Space(5);
-                settings.multiplyPlayerDamage_Enable = context.OnOffToggle(
-                    settings.multiplyPlayerDamage_Enable
-                );
-                GUILayout.FlexibleSpace();
-                settings.multiplyPlayerDamage = context.FloatHorizontalSlider(
-                    settings.multiplyPlayerDamage,
-                    0f,
-                    10f,
-                    1f,
-                    context.WideSliderLayout
-                );
-                GUILayout.EndHorizontal();
-
-                // TWEAK: disable player ammo decrease
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("3. Player ships do not use ammo:");
-                GUILayout.Space(5);
-                settings.playerShipsDontUseAmmo = context.OnOffToggle(
-                    settings.playerShipsDontUseAmmo
-                );
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-
-                // TWEAKS affecting player fleets
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("4. Operations on selected player fleet or ship:");
-                GUILayout.Space(10);
-                TIGameState? selected = null;
-                if (FleetManager.selectedPlayerShip is not null)
+                // group box
+                GUILayout.BeginVertical(context.GroupStyle);
                 {
-                    selected = FleetManager.selectedPlayerShip;
-                    GUILayout.Label(
-                        FleetManager.selectedPlayerShip.displayName,
-                        context.yellowLabel
-                    );
-                }
-                else if (FleetManager.selectedPlayerFleet is not null)
-                {
-                    selected = FleetManager.selectedPlayerFleet;
-                    GUILayout.Label(
-                        FleetManager.selectedPlayerFleet.activePlayerDisplayName,
-                        context.blueLabel
-                    );
-                }
-                else
-                    GUILayout.Label("none selected", context.redLabel);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
+                    // group label
+                    GUILayout.Label("Space Fleets and Combat", UnityModManager.UI.h2);
 
-                // operation buttons
-                GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(20);
-                if (selected is not TISpaceFleetState)
-                    GUI.enabled = false;
-                if (GUILayout.Button("Arrive at Destination") && selected is TISpaceFleetState)
-                    FleetManager.ArriveFleet((TISpaceFleetState)selected);
-                if (selected is not TISpaceFleetState)
-                    GUI.enabled = true;
-                GUILayout.Space(10);
-                if (GUILayout.Button("Refuel & Rearm"))
-                    FleetManager.RefuelRearmFleet(selected);
-                GUILayout.Space(10);
-                if (GUILayout.Button("Repair"))
-                    FleetManager.RepairFleet(selected);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
+                    // TWEAK: disable combat damage to player ships
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("1. Player ship invulnerability:");
+                    GUILayout.Space(5);
+                    settings.playerShipsInvulnerable = context.OnOffToggle(
+                        settings.playerShipsInvulnerable
+                    );
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: multiply damage dealt by player ships
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("2. Multiply damage dealt by player ships:");
+                    GUILayout.Space(5);
+                    settings.multiplyPlayerDamage_Enable = context.OnOffToggle(
+                        settings.multiplyPlayerDamage_Enable
+                    );
+                    GUILayout.FlexibleSpace();
+                    settings.multiplyPlayerDamage = context.FloatHorizontalSlider(
+                        settings.multiplyPlayerDamage,
+                        0f,
+                        10f,
+                        1f,
+                        context.WideSliderLayout
+                    );
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: disable player ammo decrease
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("3. Player ships do not use ammo:");
+                    GUILayout.Space(5);
+                    settings.playerShipsDontUseAmmo = context.OnOffToggle(
+                        settings.playerShipsDontUseAmmo
+                    );
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+
+                    // TWEAKS affecting player fleets
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("4. Operations on selected player fleet or ship:");
+                    GUILayout.Space(10);
+                    TIGameState? selected = null;
+                    if (FleetManager.selectedPlayerShip is not null)
+                    {
+                        selected = FleetManager.selectedPlayerShip;
+                        GUILayout.Label(
+                            FleetManager.selectedPlayerShip.displayName,
+                            context.yellowLabel
+                        );
+                    }
+                    else if (FleetManager.selectedPlayerFleet is not null)
+                    {
+                        selected = FleetManager.selectedPlayerFleet;
+                        GUILayout.Label(
+                            FleetManager.selectedPlayerFleet.activePlayerDisplayName,
+                            context.blueLabel
+                        );
+                    }
+                    else
+                        GUILayout.Label("none selected", context.redLabel);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+
+                    // operation buttons
+                    GUILayout.Space(15);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    if (selected is not TISpaceFleetState)
+                        GUI.enabled = false;
+                    if (GUILayout.Button("Arrive at Destination") && selected is TISpaceFleetState)
+                        FleetManager.ArriveFleet((TISpaceFleetState)selected);
+                    if (selected is not TISpaceFleetState)
+                        GUI.enabled = true;
+                    GUILayout.Space(10);
+                    if (GUILayout.Button("Refuel & Rearm"))
+                        FleetManager.RefuelRearmFleet(selected);
+                    GUILayout.Space(10);
+                    if (GUILayout.Button("Repair"))
+                        FleetManager.RepairFleet(selected);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                }
+                GUILayout.EndVertical();
             }
-            GUILayout.EndVertical();
         }
 
         internal static void OnHideGUI()
