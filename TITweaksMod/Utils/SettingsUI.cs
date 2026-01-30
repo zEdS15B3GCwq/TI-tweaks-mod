@@ -427,6 +427,16 @@ namespace TITweaksMod
 
     internal static class SettingsUI
     {
+        private static Vector2 scrollPosition = Vector2.zero;
+        private static int selectedTab = 0;
+        private static string[] tabLabels =
+        [
+            "Mining",
+            "Nation / Diplomacy",
+            "Fleets / Space combat",
+            "Councilors / Missions",
+        ];
+
         internal static SettingsUIContext? Context { get; private set; }
 
         /// <summary>
@@ -443,14 +453,17 @@ namespace TITweaksMod
             Context ??= new SettingsUIContext();
             Context.ValidateStyles();
 
-            // Draw basic layout and title for the mod settings
             GUILayout.BeginVertical();
+            selectedTab = GUILayout.Toolbar(selectedTab, tabLabels);
 
-            MiningPatches.UI.OnGUI(Main.Settings.mineSettings, Context);
-            NationPatches.UI.OnGUI(Main.Settings.nationSettings, Context);
-            SpaceShipPatches.UI.OnGUI(Main.Settings.combatSettings, Context);
-            CouncilorPatches.UI.OnGUI(Main.Settings.councilorSettings, Context);
+            // Draw basic layout and title for the mod settings
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition);
+            MiningPatches.UI.OnGUI(Main.Settings.mineSettings, Context, selectedTab == 0);
+            NationPatches.UI.OnGUI(Main.Settings.nationSettings, Context, selectedTab == 1);
+            SpaceShipPatches.UI.OnGUI(Main.Settings.combatSettings, Context, selectedTab == 2);
+            CouncilorPatches.UI.OnGUI(Main.Settings.councilorSettings, Context, selectedTab == 3);
 
+            GUILayout.EndScrollView();
             GUILayout.EndVertical();
         }
 

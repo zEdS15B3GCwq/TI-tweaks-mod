@@ -23,9 +23,9 @@ namespace TITweaksMod
             Harmony = new Harmony(modEntry.Info.Id);
             Settings = UnityModManager.ModSettings.Load<Settings>(modEntry) ?? new Settings();
 
-            string badHash = MethodHashUtil.VerifyAll(Logger, modEntry.Info.Id);
-            if (!string.IsNullOrEmpty(badHash))
-                Settings.correctHashes = badHash;
+            //string badHash = MethodHashUtil.VerifyAll(Logger, modEntry.Info.Id);
+            //if (!string.IsNullOrEmpty(badHash))
+            //    Settings.correctHashes = badHash;
 
             try
             {
@@ -74,7 +74,7 @@ namespace TITweaksMod
     /// </summary>
     public sealed class Settings : UnityModManager.ModSettings
     {
-        public string correctHashes = "";
+        //public string correctHashes = "";
 
         public MiningPatches.MiningSettings mineSettings = new();
         public NationPatches.NationSettings nationSettings = new();

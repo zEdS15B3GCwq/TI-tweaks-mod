@@ -135,26 +135,26 @@ namespace TITweaksMod.CouncilorPatches
 
             return true;
         }
+    }
 
-        [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.UnTurnCouncilor))]
-        internal static class TICouncilorState_UnTurnCouncilor_Patch
+    [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.UnTurnCouncilor))]
+    internal static class TICouncilorState_UnTurnCouncilor_Patch
+    {
+        static bool Prefix(TICouncilorState __instance, bool dismissedByTurningFaction)
         {
-            static bool Prefix(TICouncilorState __instance, bool dismissedByTurningFaction)
-            {
-                if (!Main.enabled || Main.Settings is null)
-                    return true;
-                var settings = Main.Settings.councilorSettings;
-                if (
-                    settings.NeverLoseTurnedAgents
-                    && (__instance.agentForFaction?.isActivePlayer ?? false)
-                    && !dismissedByTurningFaction
-                )
-                {
-                    // prevent unturning
-                    return false;
-                }
+            if (!Main.enabled || Main.Settings is null)
                 return true;
+            var settings = Main.Settings.councilorSettings;
+            if (
+                settings.NeverLoseTurnedAgents
+                && (__instance.agentForFaction?.isActivePlayer ?? false)
+                && !dismissedByTurningFaction
+            )
+            {
+                // prevent unturning
+                return false;
             }
+            return true;
         }
     }
 
@@ -520,7 +520,11 @@ namespace TITweaksMod.CouncilorPatches
             }
         }
 
-        internal static void OnGUI(CouncilorSettings settings, in SettingsUIContext context)
+        internal static void OnGUI(
+            CouncilorSettings settings,
+            in SettingsUIContext context,
+            bool show
+        )
         {
             if (firstOnGUI || stateDirty)
             {
@@ -530,319 +534,326 @@ namespace TITweaksMod.CouncilorPatches
                 Update();
             }
 
-            // box group
-            GUILayout.BeginVertical(context.GroupStyle);
-
-            // group label
-            GUILayout.Label("Councilors and Missions", UnityModManager.UI.h2);
-            //hidePanel = context.SubtitleToggle("Councilors and Missions", hidePanel);
-            //if (!hidePanel)
-
-            // TWEAK: councilor mission success matrix
-            GUILayout.Space(15);
-            GUILayout.Label("1. Contested Mission Outcome Matrix");
-            var columnWidth = GUILayout.Width(300f);
-            var matrix = settings.MissionOutcomeMatrix;
-            var centered = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("actor \\ target", centered, columnWidth);
-            for (int i = 0; i < MisionOutcomeGroupNames.Length; i++)
-                GUILayout.Label(MisionOutcomeGroupNames[i], centered, columnWidth);
-            GUILayout.EndHorizontal();
-            for (int row = 0; row < 3; row++)
+            if (show)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(MisionOutcomeGroupNames[row], columnWidth);
-                for (int col = 0; col < 3; col++)
-                {
-                    matrix[row][col] = (MissionOutcome)
-                        context.IncrementButton(
-                            (int)matrix[row][col],
-                            MissionOutcomeNames[(int)matrix[row][col]],
-                            5,
-                            columnWidth
-                        );
-                }
-                GUILayout.EndHorizontal();
-            }
+                // box group
+                GUILayout.BeginVertical(context.GroupStyle);
 
-            // TWEAK: increase detain duration
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("2. Increase detention duration:");
-            GUILayout.Space(10);
-            settings.LongerDetain_Enabled = (OffPlayerAll)
-                GUILayout.Toolbar(
-                    (int)settings.LongerDetain_Enabled,
-                    OffPlayerAllLabels,
+                // group label
+                GUILayout.Label("Councilors and Missions", UnityModManager.UI.h2);
+                //hidePanel = context.SubtitleToggle("Councilors and Missions", hidePanel);
+                //if (!hidePanel)
+
+                // TWEAK: councilor mission success matrix
+                GUILayout.Space(15);
+                GUILayout.Label("1. Contested Mission Outcome Matrix");
+                var columnWidth = GUILayout.Width(300f);
+                var matrix = settings.MissionOutcomeMatrix;
+                var centered = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("actor \\ target", centered, columnWidth);
+                for (int i = 0; i < MisionOutcomeGroupNames.Length; i++)
+                    GUILayout.Label(MisionOutcomeGroupNames[i], centered, columnWidth);
+                GUILayout.EndHorizontal();
+                for (int row = 0; row < 3; row++)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(MisionOutcomeGroupNames[row], columnWidth);
+                    for (int col = 0; col < 3; col++)
+                    {
+                        matrix[row][col] = (MissionOutcome)
+                            context.IncrementButton(
+                                (int)matrix[row][col],
+                                MissionOutcomeNames[(int)matrix[row][col]],
+                                5,
+                                columnWidth
+                            );
+                    }
+                    GUILayout.EndHorizontal();
+                }
+
+                // TWEAK: increase detain duration
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("2. Increase detention duration:");
+                GUILayout.Space(10);
+                settings.LongerDetain_Enabled = (OffPlayerAll)
+                    GUILayout.Toolbar(
+                        (int)settings.LongerDetain_Enabled,
+                        OffPlayerAllLabels,
+                        context.ToolbarStyle
+                    );
+                GUILayout.FlexibleSpace();
+                GUILayout.Label("Extra turns:");
+                GUILayout.Space(10);
+                settings.LongerDetain_ExtraTurns = context.IntHorizontalSlider(
+                    settings.LongerDetain_ExtraTurns,
+                    1,
+                    20,
+                    1
+                );
+                GUILayout.EndHorizontal();
+
+                // TWEAK GROUP: Councilor tweaks that target player councilors
+                GUILayout.Space(15);
+                GUILayout.Label("3. Apply effect to player councilor(s)");
+
+                // add indentation
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.BeginVertical();
+
+                // Select target councilor or all
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Select target");
+                GUILayout.Space(10);
+                selectedCouncilorIndex = GUILayout.SelectionGrid(
+                    selectedCouncilorIndex,
+                    councilorSelectionLabels,
+                    3,
                     context.ToolbarStyle
                 );
-            GUILayout.FlexibleSpace();
-            GUILayout.Label("Extra turns:");
-            GUILayout.Space(10);
-            settings.LongerDetain_ExtraTurns = context.IntHorizontalSlider(
-                settings.LongerDetain_ExtraTurns,
-                1,
-                20,
-                1
-            );
-            GUILayout.EndHorizontal();
-
-            // TWEAK GROUP: Councilor tweaks that target player councilors
-            GUILayout.Space(15);
-            GUILayout.Label("3. Apply effect to player councilor(s)");
-
-            // add indentation
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
-            GUILayout.BeginVertical();
-
-            // Select target councilor or all
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Select target");
-            GUILayout.Space(10);
-            selectedCouncilorIndex = GUILayout.SelectionGrid(
-                selectedCouncilorIndex,
-                councilorSelectionLabels,
-                3,
-                context.ToolbarStyle
-            );
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-            var targetCouncilor = CouncilorManager.GetCouncilorByIndex(selectedCouncilorIndex - 1);
-
-            // TWEAK: Add XP
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("3.1 Add XP:");
-            GUILayout.Space(10);
-            if (GUILayout.Button("10 XP"))
-                CouncilorManager.AddXPToPlayerCouncilor(10, targetCouncilor);
-            GUILayout.Space(10);
-            if (GUILayout.Button("100 XP"))
-                CouncilorManager.AddXPToPlayerCouncilor(100, targetCouncilor);
-            GUILayout.Space(10);
-            if (GUILayout.Button("500 XP"))
-                CouncilorManager.AddXPToPlayerCouncilor(500, targetCouncilor);
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("3.2 Make younger:");
-            GUILayout.Space(10);
-            if (GUILayout.Button("Take 10 years"))
-                CouncilorManager.ApplyOperation(
-                    op: CouncilorManager.Operation.MakeYounger,
-                    targetCouncilor: targetCouncilor
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                var targetCouncilor = CouncilorManager.GetCouncilorByIndex(
+                    selectedCouncilorIndex - 1
                 );
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
 
-            // TWEAK: clear all traits
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("3.3 Clear all traits:");
-            GUILayout.Space(10);
-            if (GUILayout.Button("Clear"))
-                CouncilorManager.ClearPlayerCouncilorTraits(targetCouncilor);
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
+                // TWEAK: Add XP
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("3.1 Add XP:");
+                GUILayout.Space(10);
+                if (GUILayout.Button("10 XP"))
+                    CouncilorManager.AddXPToPlayerCouncilor(10, targetCouncilor);
+                GUILayout.Space(10);
+                if (GUILayout.Button("100 XP"))
+                    CouncilorManager.AddXPToPlayerCouncilor(100, targetCouncilor);
+                GUILayout.Space(10);
+                if (GUILayout.Button("500 XP"))
+                    CouncilorManager.AddXPToPlayerCouncilor(500, targetCouncilor);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
 
-            // TWEAK: add / remove traits
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("3.4 Add / remove selected trait:");
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("3.2 Make younger:");
+                GUILayout.Space(10);
+                if (GUILayout.Button("Take 10 years"))
+                    CouncilorManager.ApplyOperation(
+                        op: CouncilorManager.Operation.MakeYounger,
+                        targetCouncilor: targetCouncilor
+                    );
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
 
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Search:");
-            GUILayout.Space(10);
-            string newSearch = GUILayout
-                .TextField(traitSearchTextLower, GUILayout.Width(500f))
-                .ToLowerInvariant();
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
+                // TWEAK: clear all traits
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("3.3 Clear all traits:");
+                GUILayout.Space(10);
+                if (GUILayout.Button("Clear"))
+                    CouncilorManager.ClearPlayerCouncilorTraits(targetCouncilor);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
 
-            if (!string.Equals(newSearch, traitSearchTextLower, StringComparison.Ordinal))
-            {
-                traitSearchTextLower = newSearch;
-                TraitManager.UpdateTraitFilter(traitSearchTextLower);
-                selectedTraitIndex = 0;
-            }
+                // TWEAK: add / remove traits
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("3.4 Add / remove selected trait:");
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
 
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            selectedTraitIndex = GUILayout.SelectionGrid(
-                selectedTraitIndex,
-                TraitManager.FilteredTraitNames,
-                5,
-                context.GridStyle,
-                GUILayout.Width(1500)
-            );
-            GUILayout.EndHorizontal();
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Search:");
+                GUILayout.Space(10);
+                string newSearch = GUILayout
+                    .TextField(traitSearchTextLower, GUILayout.Width(500f))
+                    .ToLowerInvariant();
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
 
-            GUILayout.Space(15);
-            GUILayout.Label(
-                "It's possible to add different tiers of the same trait. Who knows, it might break things."
-            );
+                if (!string.Equals(newSearch, traitSearchTextLower, StringComparison.Ordinal))
+                {
+                    traitSearchTextLower = newSearch;
+                    TraitManager.UpdateTraitFilter(traitSearchTextLower);
+                    selectedTraitIndex = 0;
+                }
 
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Click action:");
-            GUILayout.Space(10);
-            var selectedTrait = TraitManager.GetTraitByFilteredIndex(selectedTraitIndex);
-            if (GUILayout.Button("Add Trait") && selectedTrait is not null)
-                CouncilorManager.AddPlayerCouncilorTrait(selectedTrait, targetCouncilor);
-            if (GUILayout.Button("Remove Trait") && selectedTrait is not null)
-                CouncilorManager.RemovePlayerCouncilorTrait(selectedTrait, targetCouncilor);
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                selectedTraitIndex = GUILayout.SelectionGrid(
+                    selectedTraitIndex,
+                    TraitManager.FilteredTraitNames,
+                    5,
+                    context.GridStyle,
+                    GUILayout.Width(1500)
+                );
+                GUILayout.EndHorizontal();
 
-            // end indentation
-            GUILayout.EndVertical();
-            GUILayout.EndHorizontal();
-
-            // TWEAK GROUP: target enemy councilors
-            GUILayout.Space(15);
-            GUILayout.Label("4. Apply effect to enemy councilor(s)");
-
-            // add indentation
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
-            GUILayout.BeginVertical();
-
-            // Select target councilor or faction(s)
-            if (CouncilorManager.otherSelectedCouncilor is null)
-            {
                 GUILayout.Space(15);
                 GUILayout.Label(
-                    "(An individual enemy councilor selected in the game will appear here as an option.)"
+                    "It's possible to add different tiers of the same trait. Who knows, it might break things."
                 );
+
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Click action:");
+                GUILayout.Space(10);
+                var selectedTrait = TraitManager.GetTraitByFilteredIndex(selectedTraitIndex);
+                if (GUILayout.Button("Add Trait") && selectedTrait is not null)
+                    CouncilorManager.AddPlayerCouncilorTrait(selectedTrait, targetCouncilor);
+                if (GUILayout.Button("Remove Trait") && selectedTrait is not null)
+                    CouncilorManager.RemovePlayerCouncilorTrait(selectedTrait, targetCouncilor);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+
+                // end indentation
+                GUILayout.EndVertical();
+                GUILayout.EndHorizontal();
+
+                // TWEAK GROUP: target enemy councilors
+                GUILayout.Space(15);
+                GUILayout.Label("4. Apply effect to enemy councilor(s)");
+
+                // add indentation
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.BeginVertical();
+
+                // Select target councilor or faction(s)
+                if (CouncilorManager.otherSelectedCouncilor is null)
+                {
+                    GUILayout.Space(15);
+                    GUILayout.Label(
+                        "(An individual enemy councilor selected in the game will appear here as an option.)"
+                    );
+                }
+
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                selectedEnemyIndex = GUILayout.SelectionGrid(
+                    selectedEnemyIndex,
+                    enemySelectionLabels,
+                    3,
+                    context.ToolbarStyle
+                );
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                // null is used to mean all enemy factions
+                TICouncilorState? targetEnemyCouncilor = null;
+                TIFactionState? targetEnemyFaction = null;
+                bool targetAllEnemy = false;
+                switch (selectedEnemyIndex)
+                {
+                    case 0:
+                        targetAllEnemy = true;
+                        break;
+                    case var i
+                        when CouncilorManager.otherSelectedCouncilor is not null
+                            && i == enemySelectionLabels.Length - 1:
+                        targetEnemyCouncilor = CouncilorManager.otherSelectedCouncilor;
+                        break;
+                    case > 0:
+                        targetEnemyFaction = CouncilorManager.enemyFactions[selectedEnemyIndex - 1];
+                        break;
+                }
+                // TWEAK: Max intel on enemy councilors
+                GUILayout.Space(15);
+                GUILayout.Label("4.1 Select operation (multiple or individual targets allowed):");
+                GUILayout.Space(5);
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Max Intel"))
+                    CouncilorManager.ApplyOperation(
+                        CouncilorManager.Operation.Intel,
+                        targetEnemyFaction,
+                        targetEnemyCouncilor,
+                        targetAllEnemy
+                    );
+                GUILayout.Space(10);
+                if (GUILayout.Button("Detain"))
+                    CouncilorManager.ApplyOperation(
+                        CouncilorManager.Operation.Detain,
+                        targetEnemyFaction,
+                        targetEnemyCouncilor,
+                        targetAllEnemy
+                    );
+                GUILayout.Space(10);
+                if (GUILayout.Button("Cancel Mission"))
+                    CouncilorManager.ApplyOperation(
+                        CouncilorManager.Operation.CancelMission,
+                        targetEnemyFaction,
+                        targetEnemyCouncilor,
+                        targetAllEnemy
+                    );
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("4.2 Operations on selected councilor:");
+                bool cannotTurn =
+                    CouncilorManager.numTurnedCouncilors is not null
+                    && CouncilorManager.numTurnedCouncilors == 2;
+
+                GUILayout.Space(10);
+                if (GUILayout.Button("Kill (by player faction)"))
+                {
+                    CouncilorManager.ApplyOperation(
+                        CouncilorManager.Operation.Kill,
+                        null,
+                        targetEnemyCouncilor
+                    );
+                    stateDirty = true; // force update as selection has changed
+                }
+                GUILayout.Space(10);
+                if (GUILayout.Button("Retire (anonymously)"))
+                {
+                    CouncilorManager.ApplyOperation(
+                        CouncilorManager.Operation.Retire,
+                        null,
+                        targetEnemyCouncilor
+                    );
+                    stateDirty = true; // force update as selection has changed
+                }
+                GUILayout.Space(10);
+                if (cannotTurn)
+                    GUI.enabled = false;
+                if (GUILayout.Button("Turn"))
+                    CouncilorManager.ApplyOperation(
+                        CouncilorManager.Operation.Turn,
+                        null,
+                        targetEnemyCouncilor
+                    );
+                if (cannotTurn)
+                    GUI.enabled = true;
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                GUILayout.Label(
+                    "Kill and Retire only work on a selected enemy councilor due to some in-game mechanism I have not figured out."
+                );
+                GUILayout.Label(
+                    "Turn would work on any number of targets, but opening the councilor screen with >2 turned agents crashes the game."
+                );
+
+                // end indentation
+                GUILayout.EndHorizontal();
+                GUILayout.EndVertical();
+
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("5. Player's turned agents cannot unturn:");
+                GUILayout.Space(10);
+                settings.NeverLoseTurnedAgents = context.OnOffToggle(
+                    settings.NeverLoseTurnedAgents
+                );
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+
+                GUILayout.EndVertical();
             }
-
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            selectedEnemyIndex = GUILayout.SelectionGrid(
-                selectedEnemyIndex,
-                enemySelectionLabels,
-                3,
-                context.ToolbarStyle
-            );
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-            // null is used to mean all enemy factions
-            TICouncilorState? targetEnemyCouncilor = null;
-            TIFactionState? targetEnemyFaction = null;
-            bool targetAllEnemy = false;
-            switch (selectedEnemyIndex)
-            {
-                case 0:
-                    targetAllEnemy = true;
-                    break;
-                case var i
-                    when CouncilorManager.otherSelectedCouncilor is not null
-                        && i == enemySelectionLabels.Length - 1:
-                    targetEnemyCouncilor = CouncilorManager.otherSelectedCouncilor;
-                    break;
-                case > 0:
-                    targetEnemyFaction = CouncilorManager.enemyFactions[selectedEnemyIndex - 1];
-                    break;
-            }
-            // TWEAK: Max intel on enemy councilors
-            GUILayout.Space(15);
-            GUILayout.Label("4.1 Select operation (multiple or individual targets allowed):");
-            GUILayout.Space(5);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Max Intel"))
-                CouncilorManager.ApplyOperation(
-                    CouncilorManager.Operation.Intel,
-                    targetEnemyFaction,
-                    targetEnemyCouncilor,
-                    targetAllEnemy
-                );
-            GUILayout.Space(10);
-            if (GUILayout.Button("Detain"))
-                CouncilorManager.ApplyOperation(
-                    CouncilorManager.Operation.Detain,
-                    targetEnemyFaction,
-                    targetEnemyCouncilor,
-                    targetAllEnemy
-                );
-            GUILayout.Space(10);
-            if (GUILayout.Button("Cancel Mission"))
-                CouncilorManager.ApplyOperation(
-                    CouncilorManager.Operation.CancelMission,
-                    targetEnemyFaction,
-                    targetEnemyCouncilor,
-                    targetAllEnemy
-                );
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("4.2 Operations on selected councilor:");
-            bool cannotTurn =
-                CouncilorManager.numTurnedCouncilors is not null
-                && CouncilorManager.numTurnedCouncilors == 2;
-
-            GUILayout.Space(10);
-            if (GUILayout.Button("Kill (by player faction)"))
-            {
-                CouncilorManager.ApplyOperation(
-                    CouncilorManager.Operation.Kill,
-                    null,
-                    targetEnemyCouncilor
-                );
-                stateDirty = true; // force update as selection has changed
-            }
-            GUILayout.Space(10);
-            if (GUILayout.Button("Retire (anonymously)"))
-            {
-                CouncilorManager.ApplyOperation(
-                    CouncilorManager.Operation.Retire,
-                    null,
-                    targetEnemyCouncilor
-                );
-                stateDirty = true; // force update as selection has changed
-            }
-            GUILayout.Space(10);
-            if (cannotTurn)
-                GUI.enabled = false;
-            if (GUILayout.Button("Turn"))
-                CouncilorManager.ApplyOperation(
-                    CouncilorManager.Operation.Turn,
-                    null,
-                    targetEnemyCouncilor
-                );
-            if (cannotTurn)
-                GUI.enabled = true;
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-            GUILayout.Label(
-                "Kill and Retire only work on a selected enemy councilor due to some in-game mechanism I have not figured out."
-            );
-            GUILayout.Label(
-                "Turn would work on any number of targets, but opening the councilor screen with >2 turned agents crashes the game."
-            );
-
-            // end indentation
-            GUILayout.EndHorizontal();
-            GUILayout.EndVertical();
-
-            GUILayout.Space(15);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("5. Player's turned agents cannot unturn:");
-            GUILayout.Space(10);
-            settings.NeverLoseTurnedAgents = context.OnOffToggle(settings.NeverLoseTurnedAgents);
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-
-            GUILayout.EndVertical();
         }
 
         internal static void OnHideGUI()
