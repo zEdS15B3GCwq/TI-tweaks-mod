@@ -364,7 +364,7 @@ namespace TITweaksMod
             GUIStyle? buttonStyle = null
         )
         {
-            var columnWidth = GUILayout.Width(200f);
+            var columnWidth = GUILayout.Width(180f);
             var centered = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
 
             GUILayout.BeginVertical();

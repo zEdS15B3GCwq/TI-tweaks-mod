@@ -64,6 +64,9 @@ namespace TITweaksMod.CouncilorPatches
                 councilorFaction,
                 targetFaction
             );
+            Main.Logger?.Log(
+                $"{mission.dataName} by {councilor.displayName} on target {target.displayName}|{targetFaction}: {__state}"
+            );
 
             return true;
         }
@@ -484,6 +487,7 @@ namespace TITweaksMod.CouncilorPatches
             "Player",
             "Other Humans",
             "Aliens",
+            "Neutral",
         ];
         private static string[] councilorSelectionLabels = [];
         private static bool firstOnGUI = true;
@@ -559,7 +563,7 @@ namespace TITweaksMod.CouncilorPatches
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label(MisionOutcomeGroupNames[row], columnWidth);
-                    for (int col = 0; col < 3; col++)
+                    for (int col = 0; col < 4; col++)
                     {
                         matrix[row][col] = (MissionOutcome)
                             context.IncrementButton(
@@ -877,15 +881,10 @@ namespace TITweaksMod.CouncilorPatches
         public Row OtherHumans { get; set; } = new();
         public Row Aliens { get; set; } = new();
 
-        private enum FactionGroup
+        private int? FactionToIndex(TIFactionState? faction)
         {
-            Player = 0,
-            OtherHumans = 1,
-            Aliens = 2,
-        }
-
-        private int? FactionToIndex(TIFactionState faction)
-        {
+            if (faction is null)
+                return 3;
             if (faction.isActivePlayer)
                 return 0;
             if (faction.IsActiveHumanFaction)
@@ -898,7 +897,7 @@ namespace TITweaksMod.CouncilorPatches
 
         public MissionOutcome GetOutcome(
             TIFactionState councilorFaction,
-            TIFactionState targetFaction
+            TIFactionState? targetFaction
         )
         {
             var councilorGroup = FactionToIndex(councilorFaction);
@@ -913,6 +912,7 @@ namespace TITweaksMod.CouncilorPatches
             public MissionOutcome Player { get; set; }
             public MissionOutcome OtherHumans { get; set; }
             public MissionOutcome Aliens { get; set; }
+            public MissionOutcome Neutral { get; set; }
 
             public MissionOutcome this[int index]
             {
@@ -922,7 +922,8 @@ namespace TITweaksMod.CouncilorPatches
                         0 => Player,
                         1 => OtherHumans,
                         2 => Aliens,
-                        _ => throw new IndexOutOfRangeException(),
+                        3 => Neutral,
+                        _ => MissionOutcome.Default,
                     };
                 set
                 {
@@ -937,10 +938,22 @@ namespace TITweaksMod.CouncilorPatches
                         case 2:
                             Aliens = value;
                             break;
+                        case 3:
+                            Neutral = value;
+                            break;
                         default:
-                            throw new IndexOutOfRangeException();
+                            break;
                     }
                 }
+            }
+        }
+
+        public class DefaultRow : Row
+        {
+            public new MissionOutcome this[int index]
+            {
+                get => MissionOutcome.Default;
+                set { }
             }
         }
 
@@ -950,7 +963,7 @@ namespace TITweaksMod.CouncilorPatches
                 0 => Player,
                 1 => OtherHumans,
                 2 => Aliens,
-                _ => throw new IndexOutOfRangeException(),
+                _ => new DefaultRow(),
             };
     }
 
@@ -963,18 +976,21 @@ namespace TITweaksMod.CouncilorPatches
                 Player = MissionOutcome.Default,
                 OtherHumans = MissionOutcome.Default,
                 Aliens = MissionOutcome.Default,
+                Neutral = MissionOutcome.Default,
             },
             OtherHumans = new()
             {
                 Player = MissionOutcome.Default,
                 OtherHumans = MissionOutcome.Default,
                 Aliens = MissionOutcome.Default,
+                Neutral = MissionOutcome.Default,
             },
             Aliens = new()
             {
                 Player = MissionOutcome.Default,
                 OtherHumans = MissionOutcome.Default,
                 Aliens = MissionOutcome.Default,
+                Neutral = MissionOutcome.Default,
             },
         };
         public OffPlayerAll LongerDetain_Enabled = OffPlayerAll.Off;

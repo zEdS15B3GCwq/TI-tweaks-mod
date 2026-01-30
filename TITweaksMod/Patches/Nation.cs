@@ -432,7 +432,7 @@ namespace TITweaksMod.NationPatches
                     GUILayout.Space(15);
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("3. All claims are non-hostile:");
-                    GUILayout.Space(10);
+                    GUILayout.FlexibleSpace();
                     settings.ignoreHostileClaims = (targetsOffPlayerGlobal)
                         GUILayout.Toolbar(
                             (int)settings.ignoreHostileClaims,
@@ -445,7 +445,7 @@ namespace TITweaksMod.NationPatches
                     GUILayout.Space(15);
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("4. Ignore diplomatic cooldowns:");
-                    GUILayout.Space(10);
+                    GUILayout.FlexibleSpace();
                     settings.ignoreDiploCooldowns = (targetsOffPlayerGlobal)
                         GUILayout.Toolbar(
                             (int)settings.ignoreDiploCooldowns,
@@ -458,7 +458,7 @@ namespace TITweaksMod.NationPatches
                     GUILayout.Space(15);
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("5. Claim on all capitals:");
-                    GUILayout.Space(10);
+                    GUILayout.FlexibleSpace();
                     settings.claimAllCapitals = (targetsOffPlayerGlobal)
                         GUILayout.Toolbar(
                             (int)settings.claimAllCapitals,
@@ -477,7 +477,7 @@ namespace TITweaksMod.NationPatches
                     GUILayout.Space(20);
                     if (nFactions > 0)
                     {
-                        var width = GUILayout.Width(250f);
+                        var width = GUILayout.Width(200f);
                         var centered = new GUIStyle(GUI.skin.label)
                         {
                             alignment = TextAnchor.MiddleCenter,
@@ -584,9 +584,10 @@ namespace TITweaksMod.NationPatches
                         GUILayout.BeginHorizontal();
                         GUILayout.Label("Select faction:");
                         GUILayout.Space(5);
-                        selectedFaction = GUILayout.Toolbar(
+                        selectedFaction = GUILayout.SelectionGrid(
                             selectedFaction,
                             NationManager.factionLabels,
+                            4,
                             context.ToolbarStyle
                         );
                         GUILayout.FlexibleSpace();
@@ -626,7 +627,7 @@ namespace TITweaksMod.NationPatches
                         {
                             if (j > 0)
                                 GUILayout.Space(5);
-                            if (j == 2)
+                            if (j == 3)
                             {
                                 GUILayout.EndHorizontal();
                                 GUILayout.Space(5);
