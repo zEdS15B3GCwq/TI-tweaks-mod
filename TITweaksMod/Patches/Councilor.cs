@@ -64,9 +64,6 @@ namespace TITweaksMod.CouncilorPatches
                 councilorFaction,
                 targetFaction
             );
-            Main.Logger?.Log(
-                $"{mission.dataName} by {councilor.displayName} on target {target.displayName}|{targetFaction}: {__state}"
-            );
 
             return true;
         }
@@ -163,7 +160,7 @@ namespace TITweaksMod.CouncilorPatches
 
     internal static class CouncilorManager
     {
-        private static TICouncilorState? selectedCouncilor = null;
+        internal static TICouncilorState? selectedCouncilor { get; private set; } = null;
         internal static TICouncilorState? otherSelectedCouncilor { get; private set; } = null;
         internal static TIFactionState[] enemyFactions { get; private set; } = [];
         internal static TICouncilorState[] PlayerCouncilors { get; private set; } = [];
@@ -209,70 +206,79 @@ namespace TITweaksMod.CouncilorPatches
             PlayerCouncilors = PlayerFaction?.councilors.ToArray() ?? [];
         }
 
-        internal static void AddXPToPlayerCouncilor(int amount, TICouncilorState? councilor = null)
+        internal static void AddXPToPlayerCouncilor(
+            int amount,
+            TICouncilorState? councilor = null,
+            bool allCouncilors = false
+        )
         {
-            if (councilor is not null)
-            {
-                if (isPlayerCouncilor(councilor))
-                    councilor.ChangeXP(amount);
-            }
-            else
+            if (allCouncilors)
             {
                 foreach (var c in PlayerCouncilors)
                     c.ChangeXP(amount);
+            }
+            else if (councilor is not null)
+            {
+                if (isPlayerCouncilor(councilor))
+                    councilor.ChangeXP(amount);
             }
         }
 
         internal static void RemovePlayerCouncilorTrait(
             TITraitTemplate trait,
-            TICouncilorState? councilor = null
+            TICouncilorState? councilor = null,
+            bool allCouncilors = false
         )
         {
-            if (councilor is not null)
-            {
-                if (isPlayerCouncilor(councilor))
-                    councilor.RemoveTrait(trait);
-            }
-            else
+            if (allCouncilors)
             {
                 foreach (var c in PlayerCouncilors)
                     c.RemoveTrait(trait);
+            }
+            else if (councilor is not null)
+            {
+                if (isPlayerCouncilor(councilor))
+                    councilor.RemoveTrait(trait);
             }
         }
 
         internal static void AddPlayerCouncilorTrait(
             TITraitTemplate trait,
-            TICouncilorState? councilor = null
+            TICouncilorState? councilor = null,
+            bool allCouncilors = false
         )
         {
-            if (councilor is not null)
-            {
-                if (isPlayerCouncilor(councilor))
-                    councilor.AddTrait(trait);
-            }
-            else
+            if (allCouncilors)
             {
                 foreach (var c in PlayerCouncilors)
                     c.AddTrait(trait);
             }
-        }
-
-        internal static void ClearPlayerCouncilorTraits(TICouncilorState? councilor = null)
-        {
-            if (councilor is not null)
+            else if (councilor is not null)
             {
                 if (isPlayerCouncilor(councilor))
-                {
-                    List<TITraitTemplate> traits = [.. councilor.traits];
-                    traits.ForEach(t => councilor.RemoveTrait(t));
-                }
+                    councilor.AddTrait(trait);
             }
-            else
+        }
+
+        internal static void ClearPlayerCouncilorTraits(
+            TICouncilorState? councilor = null,
+            bool allCouncilors = false
+        )
+        {
+            if (allCouncilors)
             {
                 foreach (var c in PlayerCouncilors)
                 {
                     List<TITraitTemplate> traits = [.. c.traits];
                     traits.ForEach(t => c.RemoveTrait(t));
+                }
+            }
+            else if (councilor is not null)
+            {
+                if (isPlayerCouncilor(councilor))
+                {
+                    List<TITraitTemplate> traits = [.. councilor.traits];
+                    traits.ForEach(t => councilor.RemoveTrait(t));
                 }
             }
         }
@@ -361,7 +367,7 @@ namespace TITweaksMod.CouncilorPatches
             // all councilors in all enemy factions
             if (targetAllEnemyFactions)
             {
-                otherSelectedCouncilor = null;
+                //otherSelectedCouncilor = null;
                 foreach (var faction in enemyFactions)
                 {
                     TICouncilorState[] councilors = [.. faction.councilors];
@@ -497,12 +503,25 @@ namespace TITweaksMod.CouncilorPatches
         private static string traitSearchTextLower = string.Empty;
         private static string[] enemySelectionLabels = [];
         private static int selectedEnemyIndex = 0;
+        private static int maxCouncilorAttribute = 0;
+        private static TICouncilorState? lastSelectedPlayerCouncilor = null;
+        private static Dictionary<CouncilorAttribute, int> selectedPlayerCouncilorAttrs = new();
+        private static bool selectedPlayerCouncilorAttrsDirty = true;
 
         private static void Update()
         {
             var councilorNames = CouncilorManager.PlayerCouncilorNames;
             councilorSelectionLabels = [$"All ({councilorNames.Length})", .. councilorNames];
+
             selectedCouncilorIndex = (CouncilorManager.SelectedCouncilorIndex ?? -1) + 1;
+            if (CouncilorManager.selectedCouncilor is not null and var councilor)
+            {
+                lastSelectedPlayerCouncilor = councilor;
+                selectedPlayerCouncilorAttrs = new(councilor.attributes);
+                selectedPlayerCouncilorAttrsDirty = false;
+            }
+            maxCouncilorAttribute = TemplateManager.global.maxCouncilorAttribute;
+
             if (CouncilorManager.otherSelectedCouncilor is null)
             {
                 enemySelectionLabels =
@@ -545,8 +564,6 @@ namespace TITweaksMod.CouncilorPatches
 
                 // group label
                 GUILayout.Label("Councilors and Missions", UnityModManager.UI.h2);
-                //hidePanel = context.SubtitleToggle("Councilors and Missions", hidePanel);
-                //if (!hidePanel)
 
                 // TWEAK: councilor mission success matrix
                 GUILayout.Space(15);
@@ -620,9 +637,15 @@ namespace TITweaksMod.CouncilorPatches
                 );
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
-                var targetCouncilor = CouncilorManager.GetCouncilorByIndex(
-                    selectedCouncilorIndex - 1
-                );
+                var targetAllPlayerCouncilors = selectedCouncilorIndex == 0;
+                TICouncilorState? targetCouncilor = targetAllPlayerCouncilors
+                    ? null
+                    : CouncilorManager.GetCouncilorByIndex(selectedCouncilorIndex - 1);
+                if (targetCouncilor != lastSelectedPlayerCouncilor)
+                {
+                    selectedPlayerCouncilorAttrsDirty = true;
+                    lastSelectedPlayerCouncilor = targetCouncilor;
+                }
 
                 // TWEAK: Add XP
                 GUILayout.Space(15);
@@ -630,13 +653,25 @@ namespace TITweaksMod.CouncilorPatches
                 GUILayout.Label("3.1 Add XP:");
                 GUILayout.Space(10);
                 if (GUILayout.Button("10 XP"))
-                    CouncilorManager.AddXPToPlayerCouncilor(10, targetCouncilor);
+                    CouncilorManager.AddXPToPlayerCouncilor(
+                        10,
+                        targetCouncilor,
+                        targetAllPlayerCouncilors
+                    );
                 GUILayout.Space(10);
                 if (GUILayout.Button("100 XP"))
-                    CouncilorManager.AddXPToPlayerCouncilor(100, targetCouncilor);
+                    CouncilorManager.AddXPToPlayerCouncilor(
+                        100,
+                        targetCouncilor,
+                        targetAllPlayerCouncilors
+                    );
                 GUILayout.Space(10);
                 if (GUILayout.Button("500 XP"))
-                    CouncilorManager.AddXPToPlayerCouncilor(500, targetCouncilor);
+                    CouncilorManager.AddXPToPlayerCouncilor(
+                        500,
+                        targetCouncilor,
+                        targetAllPlayerCouncilors
+                    );
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
@@ -647,25 +682,88 @@ namespace TITweaksMod.CouncilorPatches
                 if (GUILayout.Button("Take 10 years"))
                     CouncilorManager.ApplyOperation(
                         op: CouncilorManager.Operation.MakeYounger,
+                        targetFaction: targetAllPlayerCouncilors
+                            ? CouncilorManager.PlayerFaction
+                            : null,
                         targetCouncilor: targetCouncilor
                     );
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
+                // TWEAK: attribute editor
+                GUILayout.Space(15);
+                GUILayout.Label("3.3 Attribute editor:");
+                GUILayout.Space(10);
+                GUILayout.Label(
+                    $"Selected councilor's raw attributes can be changed within allowed limits (0 - {maxCouncilorAttribute})."
+                );
+                GUILayout.Space(10);
+                if (targetCouncilor is null)
+                    GUILayout.Label("Select an individual councilor", context.redLabel);
+                else
+                {
+                    if (selectedPlayerCouncilorAttrsDirty)
+                    {
+                        selectedPlayerCouncilorAttrs = new(targetCouncilor.attributes);
+                        selectedPlayerCouncilorAttrsDirty = false;
+                    }
+                    GUILayout.BeginHorizontal();
+                    GUILayout.BeginVertical();
+                    foreach (var attr in selectedPlayerCouncilorAttrs)
+                    {
+                        var oldValue = attr.Value;
+                        int newValue = oldValue;
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label($"{attr.Key.ToString()}");
+                        GUILayout.FlexibleSpace();
+                        if (GUILayout.Button("Set to 10"))
+                            newValue = 10;
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("-5"))
+                            newValue -= 5;
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("-1"))
+                            newValue -= 1;
+                        GUILayout.Space(5);
+                        GUILayout.Label($"{attr.Value}", centered, GUILayout.Width(75f));
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("+1"))
+                            newValue += 1;
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("+5"))
+                            newValue += 5;
+                        GUILayout.Space(5);
+                        if (GUILayout.Button("Set to Max"))
+                            newValue = maxCouncilorAttribute;
+                        GUILayout.EndHorizontal();
+                        if (oldValue != newValue)
+                        {
+                            targetCouncilor.ModifyAttribute(attr.Key, newValue - oldValue);
+                            selectedPlayerCouncilorAttrsDirty = true;
+                        }
+                    }
+                    GUILayout.EndVertical();
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                }
+
                 // TWEAK: clear all traits
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("3.3 Clear all traits:");
+                GUILayout.Label("3.4 Clear all traits:");
                 GUILayout.Space(10);
                 if (GUILayout.Button("Clear"))
-                    CouncilorManager.ClearPlayerCouncilorTraits(targetCouncilor);
+                    CouncilorManager.ClearPlayerCouncilorTraits(
+                        targetCouncilor,
+                        targetAllPlayerCouncilors
+                    );
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
                 // TWEAK: add / remove traits
                 GUILayout.Space(15);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("3.4 Add / remove selected trait:");
+                GUILayout.Label("3.5 Add / remove selected trait:");
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
@@ -708,9 +806,17 @@ namespace TITweaksMod.CouncilorPatches
                 GUILayout.Space(10);
                 var selectedTrait = TraitManager.GetTraitByFilteredIndex(selectedTraitIndex);
                 if (GUILayout.Button("Add Trait") && selectedTrait is not null)
-                    CouncilorManager.AddPlayerCouncilorTrait(selectedTrait, targetCouncilor);
+                    CouncilorManager.AddPlayerCouncilorTrait(
+                        selectedTrait,
+                        targetCouncilor,
+                        targetAllPlayerCouncilors
+                    );
                 if (GUILayout.Button("Remove Trait") && selectedTrait is not null)
-                    CouncilorManager.RemovePlayerCouncilorTrait(selectedTrait, targetCouncilor);
+                    CouncilorManager.RemovePlayerCouncilorTrait(
+                        selectedTrait,
+                        targetCouncilor,
+                        targetAllPlayerCouncilors
+                    );
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
@@ -767,7 +873,7 @@ namespace TITweaksMod.CouncilorPatches
                 // TWEAK: Max intel on enemy councilors
                 GUILayout.Space(15);
                 GUILayout.Label("4.1 Select operation (multiple or individual targets allowed):");
-                GUILayout.Space(5);
+                GUILayout.Space(10);
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Max Intel"))
                     CouncilorManager.ApplyOperation(
@@ -796,50 +902,56 @@ namespace TITweaksMod.CouncilorPatches
                 GUILayout.EndHorizontal();
 
                 GUILayout.Space(15);
-                GUILayout.BeginHorizontal();
                 GUILayout.Label("4.2 Operations on selected councilor:");
-                bool cannotTurn =
-                    CouncilorManager.numTurnedCouncilors is not null
-                    && CouncilorManager.numTurnedCouncilors == 2;
-
                 GUILayout.Space(10);
-                if (GUILayout.Button("Kill (by player faction)"))
+                if (targetEnemyCouncilor is null)
+                    GUILayout.Label("Select an individual enemy councilor", context.redLabel);
+                else
                 {
-                    CouncilorManager.ApplyOperation(
-                        CouncilorManager.Operation.Kill,
-                        null,
-                        targetEnemyCouncilor
-                    );
-                    stateDirty = true; // force update as selection has changed
+                    bool cannotTurn =
+                        CouncilorManager.numTurnedCouncilors is not null
+                        && CouncilorManager.numTurnedCouncilors == 2;
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("Kill (by player faction)"))
+                    {
+                        CouncilorManager.ApplyOperation(
+                            CouncilorManager.Operation.Kill,
+                            null,
+                            targetEnemyCouncilor
+                        );
+                        stateDirty = true; // force update as selection has changed
+                    }
+                    GUILayout.Space(10);
+                    if (GUILayout.Button("Retire (anonymously)"))
+                    {
+                        CouncilorManager.ApplyOperation(
+                            CouncilorManager.Operation.Retire,
+                            null,
+                            targetEnemyCouncilor
+                        );
+                        stateDirty = true; // force update as selection has changed
+                    }
+                    GUILayout.Space(10);
+                    if (cannotTurn)
+                        GUI.enabled = false;
+                    if (GUILayout.Button("Turn"))
+                        CouncilorManager.ApplyOperation(
+                            CouncilorManager.Operation.Turn,
+                            null,
+                            targetEnemyCouncilor
+                        );
+                    if (cannotTurn)
+                        GUI.enabled = true;
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
                 }
                 GUILayout.Space(10);
-                if (GUILayout.Button("Retire (anonymously)"))
-                {
-                    CouncilorManager.ApplyOperation(
-                        CouncilorManager.Operation.Retire,
-                        null,
-                        targetEnemyCouncilor
-                    );
-                    stateDirty = true; // force update as selection has changed
-                }
-                GUILayout.Space(10);
-                if (cannotTurn)
-                    GUI.enabled = false;
-                if (GUILayout.Button("Turn"))
-                    CouncilorManager.ApplyOperation(
-                        CouncilorManager.Operation.Turn,
-                        null,
-                        targetEnemyCouncilor
-                    );
-                if (cannotTurn)
-                    GUI.enabled = true;
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
+                GUILayout.Label("Notes:");
                 GUILayout.Label(
                     "Kill and Retire only work on a selected enemy councilor due to some in-game mechanism I have not figured out."
                 );
                 GUILayout.Label(
-                    "Turn would work on any number of targets, but opening the councilor screen with >2 turned agents crashes the game."
+                    "Turn would work on any number of targets in theory, but opening the councilor screen with >2 turned agents crashes the game."
                 );
 
                 // end indentation
