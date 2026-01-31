@@ -64,9 +64,6 @@ namespace TITweaksMod.CouncilorPatches
                 councilorFaction,
                 targetFaction
             );
-            Main.Logger?.Log(
-                $"{mission.dataName} by {councilor.displayName} on target {target.displayName}|{targetFaction}: {__state}"
-            );
 
             return true;
         }
