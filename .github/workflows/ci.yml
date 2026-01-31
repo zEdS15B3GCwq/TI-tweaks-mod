@@ -103,7 +103,6 @@ jobs:
                 archive_name: item.name
               }))
             };
-            console.log(matrix);
             core.setOutput("matrix", JSON.stringify(matrix));
 
   build_matrix:
