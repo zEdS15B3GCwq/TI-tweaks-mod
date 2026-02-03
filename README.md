@@ -2,6 +2,7 @@
 
 [![ci](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/actions/workflows/ci.yml/badge.svg)](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/actions/workflows/github-code-scanning/codeql)
+[![NexusMods](https://img.shields.io/badge/Nexus_Mods-Cheats_and_Tweaks-orange?style=flat)](https://www.nexusmods.com/terrainvicta/mods/65)
 
 Terra Invicta tweaks mod using Harmony for patching the game, featuring an
 in-game menu. It requires Unity Mod Manager for loading the mod and for the GUI.
@@ -67,7 +68,8 @@ Notes:
   federation and cooldown (tweak 4) and hostile claims both innate and due to
   democracy score differences (tweak 3). Furthermore, tweak 5 adds a claim on
   all federation member capitals, which means that any country in the federation
-  can be unified.
+  can be unified. Note that while unifications are possible, regions without
+  a claim may turn hostile, so be careful when absorbing a large nation.
 * Tweaks 6 and 7 are about diplomatic attitudes, which in the game are expressed
   as hate, indicating how much factions hate each other. Point 6 shows the
   MC-based hate that aliens have towards human factions (basically a minimum
