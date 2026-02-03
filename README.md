@@ -9,6 +9,17 @@ in-game menu. It requires Unity Mod Manager for loading the mod and for the GUI.
 Tested for game version 1.0.28. If you notice any crashes or other problems
 submit an [issue](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/issues).
 
+## Table of Contents
+
+* [Table of Contents](#table-of-contents)
+* [Available tweaks \& cheats](#available-tweaks--cheats)
+  * [Mining tab](#mining-tab)
+  * [Nation / Diplomacy tab](#nation--diplomacy-tab)
+  * [Space Fleets and Combat tab](#space-fleets-and-combat-tab)
+  * [Councilors and Missions tab](#councilors-and-missions-tab)
+* [Installation](#installation)
+* [Support](#support)
+
 ## Available tweaks & cheats
 
 ### Mining tab
@@ -183,4 +194,4 @@ The mod is absolutely free, but if you liked using it, please consider
 supporting my efforts. It took me weeks to learn C#, learn how to disassemble
 and patch Unity games, find out how the game works, and to test all the tweaks.
 
-[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/ftmods)
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/ftmods/tip)
