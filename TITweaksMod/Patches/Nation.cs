@@ -115,6 +115,9 @@ namespace TITweaksMod.NationPatches
                 return;
             NationSettings settings = Main.Settings.nationSettings;
 
+            if (__instance.executiveFaction is null)
+                return;
+
             if (
                 settings.ignoreHostileClaims == targetsOffPlayerGlobal.All
                 || (
@@ -135,6 +138,9 @@ namespace TITweaksMod.NationPatches
                 return;
             NationSettings settings = Main.Settings.nationSettings;
 
+            if (__instance.executiveFaction is null)
+                return;
+
             if (
                 settings.ignoreDiploCooldowns == targetsOffPlayerGlobal.All
                 || (
@@ -154,6 +160,9 @@ namespace TITweaksMod.NationPatches
             if (!Main.enabled || Main.Settings?.nationSettings is null)
                 return;
             NationSettings settings = Main.Settings.nationSettings;
+
+            if (__instance.executiveFaction is null)
+                return;
 
             if (
                 settings.claimAllCapitals == targetsOffPlayerGlobal.All

@@ -52,19 +52,18 @@ namespace TITweaksMod.CouncilorPatches
             out MissionOutcome __state
         )
         {
+            __state = MissionOutcome.Default;
+
             if (!Main.enabled || Main.Settings is null)
-            {
-                __state = MissionOutcome.Default;
                 return true;
-            }
 
             var councilorFaction = councilor.faction;
             var targetFaction = mission.target.GetRelevantFaction(target);
+
             __state = Main.Settings.councilorSettings.MissionOutcomeMatrix.GetOutcome(
                 councilorFaction,
                 targetFaction
             );
-
             return true;
         }
 
@@ -145,15 +144,29 @@ namespace TITweaksMod.CouncilorPatches
             if (!Main.enabled || Main.Settings is null)
                 return true;
             var settings = Main.Settings.councilorSettings;
+
+            // Allow retired agents to be removed
+            // Retired agents turn to null pointers so not allowing this would cause null pointer exceptions!
+            if (__instance.archived)
+            {
+                //Main.Logger?.Log(
+                //    $"UnTurnCouncilor patch: councilor {__instance.displayName}|archived {__instance.archived}, faction {__instance.agentForFaction?.displayName}"
+                //);
+                return true;
+            }
+
+            // Allow dismissing turned agents
+            if (dismissedByTurningFaction)
+                return true;
+
+            // Prevent losing player's turned agents if settings is enabled
             if (
                 settings.NeverLoseTurnedAgents
                 && (__instance.agentForFaction?.isActivePlayer ?? false)
-                && !dismissedByTurningFaction
             )
-            {
-                // prevent unturning
                 return false;
-            }
+
+            // default
             return true;
         }
     }
