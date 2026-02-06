@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
+using PavonisInteractive.TerraInvicta.Tasks;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -139,6 +140,187 @@ namespace TITweaksMod.SpaceShipPatches
             }
 
             return true;
+        }
+    }
+
+    [HarmonyPatch(
+        typeof(TISpaceShipTemplate),
+        nameof(TISpaceShipTemplate.AreWeaponModulesValidForRefit)
+    )]
+    internal static class TISpaceShipTemplate_AreWeaponModulesValidForRefit_Patch
+    {
+        internal static void Postfix(TISpaceShipTemplate __instance, ref bool __result)
+        {
+            if (!Main.enabled || (Main.Settings?.combatSettings is null))
+                return;
+
+            // only affect player designs
+            if ((!__instance.designingFaction?.isActivePlayer) ?? false)
+                return;
+
+            CombatSettings settings = Main.Settings.combatSettings;
+
+            if (settings.allowWeaponRefit)
+                __result = true;
+
+            return;
+        }
+    }
+
+    [HarmonyPatch(
+        typeof(TISpaceShipTemplate),
+        nameof(TISpaceShipTemplate.AreUtilityModulesValidForRefit)
+    )]
+    internal static class TISpaceShipTemplate_AreUtilityModulesValidForRefit_Patch
+    {
+        internal static void Postfix(TISpaceShipTemplate __instance, ref bool __result)
+        {
+            if (!Main.enabled || (Main.Settings?.combatSettings is null))
+                return;
+
+            // only affect player designs
+            if ((!__instance.designingFaction?.isActivePlayer) ?? false)
+                return;
+
+            CombatSettings settings = Main.Settings.combatSettings;
+
+            if (settings.allowUtilityRefit)
+                __result = true;
+
+            return;
+        }
+    }
+
+    [HarmonyPatch(typeof(TIDriveTemplate), nameof(TIDriveTemplate.IsValidRefitPart))]
+    internal static class TIDriveTemplate_IsValidRefitPart_Patch
+    {
+        internal static void Postfix(TISpaceShipTemplate oldShipTemplate, ref bool __result)
+        {
+            if (!Main.enabled || (Main.Settings?.combatSettings is null))
+                return;
+
+            // only affect player designs
+            if ((!oldShipTemplate.designingFaction?.isActivePlayer) ?? false)
+                return;
+
+            CombatSettings settings = Main.Settings.combatSettings;
+
+            if (settings.allowEnginePowerplantRefit)
+                __result = true;
+
+            return;
+        }
+    }
+
+    [HarmonyPatch(typeof(TIPowerPlantTemplate), nameof(TIPowerPlantTemplate.IsValidRefitPart))]
+    internal static class TIPowerPlantTemplate_IsValidRefitPart_Patch
+    {
+        internal static void Postfix(TISpaceShipTemplate originalShipTemplate, ref bool __result)
+        {
+            if (!Main.enabled || (Main.Settings?.combatSettings is null))
+                return;
+
+            // only affect player designs
+            if ((!originalShipTemplate.designingFaction?.isActivePlayer) ?? false)
+                return;
+
+            CombatSettings settings = Main.Settings.combatSettings;
+
+            if (settings.allowEnginePowerplantRefit)
+                __result = true;
+
+            return;
+        }
+    }
+
+    [HarmonyPatch(typeof(TISpaceShipTemplate), nameof(TISpaceShipTemplate.IsAValidRefitFor))]
+    internal static class TISpaceShipTemplate_IsAValidRefitFor_Patch
+    {
+        internal static bool Prefix(
+            TISpaceShipTemplate __instance,
+            ref string reason,
+            ref bool __result
+        )
+        {
+            if (!Main.enabled || (Main.Settings?.combatSettings is null))
+                return true;
+
+            // only affect player designs
+            if ((!__instance.designingFaction?.isActivePlayer) ?? false)
+                return true;
+
+            CombatSettings settings = Main.Settings.combatSettings;
+
+            // Allow any refit unconditionally, skip game method
+            if (settings.allowAllRefit)
+            {
+                reason = string.Empty;
+                __result = true;
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(StratCombatInitStrategy), nameof(StratCombatInitStrategy.SelectStance))]
+    internal static class StratCombatInitStrategy_SelectStance_Patch
+    {
+        internal static bool Prefix(
+            StratCombatInitStrategy __instance,
+            TIFactionState faction,
+            TISpaceCombatState combatState,
+            out bool __state
+        //ref CombatStance __result
+        )
+        {
+            __state = false;
+
+            if (!Main.enabled || (Main.Settings?.combatSettings is null))
+                return true;
+
+            // skip if attacker is not human or if defender is human
+            // unsure if faction can be the player here - wouldn't humans be prompted in the UI instead?
+            if (!combatState.attacker.faction.isActivePlayer || faction.isActivePlayer)
+                return true;
+
+            CombatSettings settings = Main.Settings.combatSettings;
+
+            // if setting is enabled for active faction
+            if (
+                (!faction.IsAlienFaction && settings.combatAIHumanAlwaysDefendAgainstPlayer)
+                || (faction.IsAlienFaction && settings.combatAIAlienAlwaysDefendAgainstPlayer)
+            )
+            {
+                // always defend (not evade) if allowed
+                // possible combat stances are set in TISpaceCombatState.InitializeCombat
+                List<CombatStance> list = combatState.allowedStances[faction];
+                if (list.Contains(CombatStance.Defend))
+                {
+                    //__result = CombatStance.Defend;
+                    //return false;
+                    __state = true;
+                }
+            }
+
+            return true;
+        }
+
+        internal static void Postfix(
+            StratCombatInitStrategy __instance,
+            TIFactionState faction,
+            TISpaceCombatState combatState,
+            bool __state,
+            ref CombatStance __result
+        )
+        {
+            if (__state)
+            {
+                Main.Logger?.Log(
+                    $"SelectStance: faction {faction.displayName} vs attacker {combatState.attacker.faction.displayName}, original stance: {__result}, new stance: {CombatStance.Defend}"
+                );
+                __result = CombatStance.Defend;
+            }
         }
     }
 
@@ -381,6 +563,67 @@ namespace TITweaksMod.SpaceShipPatches
                         FleetManager.RepairFleet(selected);
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
+
+                    // TWEAK: allow refit
+                    GUILayout.Space(15);
+                    GUILayout.Label("5. Allow restricted refit (player designs only):");
+                    GUILayout.Space(10);
+                    GUILayout.BeginHorizontal();
+                    if (settings.allowAllRefit)
+                        GUI.enabled = false;
+                    settings.allowEnginePowerplantRefit = GUILayout.Toggle(
+                        settings.allowEnginePowerplantRefit,
+                        "Engine and Powerplant",
+                        context.ToggleStyle
+                    );
+                    GUILayout.Space(5);
+                    settings.allowUtilityRefit = GUILayout.Toggle(
+                        settings.allowUtilityRefit,
+                        "Utilities",
+                        context.ToggleStyle
+                    );
+                    GUILayout.Space(5);
+                    settings.allowWeaponRefit = GUILayout.Toggle(
+                        settings.allowWeaponRefit,
+                        "Weapons",
+                        context.ToggleStyle
+                    );
+                    if (settings.allowAllRefit)
+                        GUI.enabled = true;
+                    GUILayout.Space(5);
+                    settings.allowAllRefit = GUILayout.Toggle(
+                        settings.allowAllRefit,
+                        "Any",
+                        context.ToggleStyle
+                    );
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                    GUILayout.Space(10);
+                    GUILayout.Label(
+                        "Careful! The Any option disables any restrictions on refitting, even sanity checks for duplicate"
+                    );
+                    GUILayout.Label(
+                        "designs and hull changes. It may be useful for some specific cases, such as removing batteries."
+                    );
+
+                    // TWEAK: combat AI always defend
+                    GUILayout.Space(15);
+                    GUILayout.Label("6. Combat AI will always defend when attacked by player:");
+                    GUILayout.Space(10);
+                    GUILayout.BeginHorizontal();
+                    settings.combatAIHumanAlwaysDefendAgainstPlayer = GUILayout.Toggle(
+                        settings.combatAIHumanAlwaysDefendAgainstPlayer,
+                        "Human AI",
+                        context.ToggleStyle
+                    );
+                    GUILayout.Space(5);
+                    settings.combatAIAlienAlwaysDefendAgainstPlayer = GUILayout.Toggle(
+                        settings.combatAIAlienAlwaysDefendAgainstPlayer,
+                        "Alien AI",
+                        context.ToggleStyle
+                    );
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
                 }
                 GUILayout.EndVertical();
             }
@@ -398,5 +641,11 @@ namespace TITweaksMod.SpaceShipPatches
         public bool multiplyPlayerDamage_Enable = false;
         public float multiplyPlayerDamage = 1f;
         public bool playerShipsDontUseAmmo = false;
+        public bool allowUtilityRefit = false;
+        public bool allowWeaponRefit = false;
+        public bool allowEnginePowerplantRefit = false;
+        public bool allowAllRefit = false;
+        public bool combatAIHumanAlwaysDefendAgainstPlayer = false;
+        public bool combatAIAlienAlwaysDefendAgainstPlayer = false;
     }
 }
