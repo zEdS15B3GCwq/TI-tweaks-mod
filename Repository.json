@@ -1,6 +1,7 @@
 {
 	"Releases":
 	[
-		{"Id": "TITweaksMod", "Version": "0.12.0", "DownloadUrl": "https://github.com/zEdS15B3GCwq/TI-tweaks-mod/releases/download/0.12.0/TITweaks_Win_x64_v0.12.0.zip"}
+		{"Id": "TITweaksMod", "Version": "0.12.0", "DownloadUrl": "https://github.com/zEdS15B3GCwq/TI-tweaks-mod/releases/download/0.12.0/TITweaks_Win_x64_v0.12.0.zip"},
+		{"Id": "TITweaksMod", "Version": "0.13.0", "DownloadUrl": "https://github.com/zEdS15B3GCwq/TI-tweaks-mod/releases/download/0.13.0/TITweaks_Win_x64_v0.13.0.zip"}
 	]
 }
