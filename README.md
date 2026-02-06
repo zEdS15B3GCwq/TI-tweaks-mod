@@ -31,15 +31,19 @@ for an up-to-date description.
    extract the downloaded `.zip` file into the game's `Mods\Enabled` folder.
    After extracting the zip file you should have a
    `Terra Invicta\Mods\Enabled\TITweaksMod` folder with the files.
-3. Verify that Unity Mod Manager's window opens the next time you launch the
+3. Altenatively, you can install the mod with UMM.
+4. Verify that Unity Mod Manager's window opens the next time you launch the
    game, that the `Tweaks and Cheats [FT]` mod is enabled, and that you can open
    its settings.
-4. Enjoy!
+5. Enjoy!
 
 ## Updates
 
-Use UMM's update system or download the latest .zip and repeat the installation
-process steps.
+Download the latest .zip and repeat the installation process steps.
+
+Do not expect UMM to report that there's a new version available, or to be
+able to automatically download a release. I've tried dozens of configuration
+versions (including renaming the folder to the mod Id), but nothing worked.
 
 ## Support
 
