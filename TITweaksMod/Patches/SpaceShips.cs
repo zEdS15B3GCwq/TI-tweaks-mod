@@ -294,6 +294,7 @@ namespace TITweaksMod.SpaceShipPatches
             {
                 // always defend (not evade) if allowed
                 // possible combat stances are set in TISpaceCombatState.InitializeCombat
+                // we let Postfix() know that it should set Defend when necessary
                 List<CombatStance> list = combatState.allowedStances[faction];
                 if (list.Contains(CombatStance.Defend))
                 {
@@ -307,18 +308,20 @@ namespace TITweaksMod.SpaceShipPatches
         }
 
         internal static void Postfix(
-            StratCombatInitStrategy __instance,
-            TIFactionState faction,
-            TISpaceCombatState combatState,
+            //StratCombatInitStrategy __instance,
+            //TIFactionState faction,
+            //TISpaceCombatState combatState,
             bool __state,
             ref CombatStance __result
         )
         {
-            if (__state)
+            // Prefix() is signaling us that we should set Defend,
+            // but no need to set Defend if AI already wants to fight
+            if (__state && __result != CombatStance.Defend && __result != CombatStance.Pursue)
             {
-                Main.Logger?.Log(
-                    $"SelectStance: faction {faction.displayName} vs attacker {combatState.attacker.faction.displayName}, original stance: {__result}, new stance: {CombatStance.Defend}"
-                );
+                //Main.Logger?.Log(
+                //    $"SelectStance: faction {faction.displayName} vs attacker {combatState.attacker.faction.displayName}, original stance: {__result}, new stance: {CombatStance.Defend}"
+                //);
                 __result = CombatStance.Defend;
             }
         }
