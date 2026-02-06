@@ -16,8 +16,29 @@ repos:
       - id: check-case-conflict
       - id: check-yaml
       - id: no-commit-to-branch
+      # -----------------------------------------
+      # 1. Default rule: enforce LF everywhere except VS project
+      # -----------------------------------------
       - id: mixed-line-ending
         args: [--fix=lf]
+        exclude: |
+          (?x)^(
+            .*\.slnx$ |
+            TITweaksMod/
+          )
+
+      # -----------------------------------------
+      # 2. Override: enforce CRLF for VS project files
+      # -----------------------------------------
+      - id: mixed-line-ending
+        name: mixed-line-ending (VS project files)
+        args: [--fix=crlf]
+        files: |
+          (?x)^(
+            .*\.slnx$ |
+            TITweaksMod/
+          )
+
 
   # Check markdown files
   - repo: https://github.com/igorshubovych/markdownlint-cli

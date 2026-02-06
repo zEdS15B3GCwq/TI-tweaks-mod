@@ -206,13 +206,15 @@ namespace TITweaksMod.CouncilorPatches
             var selectedGameState = GeneralControlsController.UISelectedAssetState;
             var otherSelectedState = GeneralControlsController.UIOtherSelectedState;
 
-            selectedCouncilor = isCouncilor(selectedGameState)
-                ? (TICouncilorState)selectedGameState
-                : null;
+            if (selectedGameState is TICouncilorState playerCouncilor)
+                selectedCouncilor = playerCouncilor;
+            else
+                selectedCouncilor = null;
 
-            otherSelectedCouncilor = isCouncilor(otherSelectedState)
-                ? (TICouncilorState)otherSelectedState
-                : null;
+            if (otherSelectedState is TICouncilorState { active: true } enemyCouncilor)
+                otherSelectedCouncilor = enemyCouncilor;
+            else
+                otherSelectedCouncilor = null;
 
             PlayerFaction = GameStateManager.AllFactions().FirstOrDefault(x => x.isActivePlayer);
             enemyFactions = GameStateManager.AllFactions().Where(f => !f.isActivePlayer).ToArray();
@@ -554,6 +556,9 @@ namespace TITweaksMod.CouncilorPatches
                 ];
                 selectedEnemyIndex = enemySelectionLabels.Length - 1;
             }
+
+            traitSearchTextLower = string.Empty;
+            selectedTraitIndex = 0;
         }
 
         internal static void OnGUI(
