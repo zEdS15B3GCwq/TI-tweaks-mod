@@ -187,7 +187,7 @@ Notes:
 
 ## Updates
 
-I found UMM's update system too annoying to comply with, so you'll need to
+I've found UMM's update system too annoying to comply with, so you'll need to
 download the latest release .zip and extract it to the target folder just as
 above.
 
