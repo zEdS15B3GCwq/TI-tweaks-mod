@@ -174,21 +174,22 @@ Notes:
 
 1. Install [Unity Mod Manager](https://www.nexusmods.com/site/mods/21) (version
    0.32.4.0) onto the game.
-2. Create a folder named `Tweaks and Cheats [FT]` under
-   `Terra Invicta\Mods\Enabled\`. You should have a
-   `Terra Invicta\Mods\Enabled\Tweaks and Cheats [FT]` folder now.
-3. Download the latest release from
+2. Download the latest release from
    [Releases](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/releases) and
-   extract the downloaded `.zip` file into this folder. The `.zip` file contains
-   a `TITweaksMod.dll` and a `ModInfo.json` file - they need to be present in
-   the mod's folder. After launching the game with the mod enabled, there will
-   be other files in this folder, such as `Settings.xml` for storing mod
-   settings, and a `*.cache` file. If you download the mod from NexusMods, it
-   already contains the folder.
-4. Verify that Unity Mod Manager's window opens the next time you launch the
-   game, that the `Tweaks & Cheats [FT]` mod is enabled, and that you can open
+   extract the downloaded `.zip` file into the game's `Mods\Enabled` folder.
+   The `.zip` file contains a "Tweaks and Cheats [FT]" folder and the mod files
+   within, so after extracting it, you should have a
+   `Terra Invicta\Mods\Enabled\Tweaks and Cheats [FT]` folder with the files.
+3. Verify that Unity Mod Manager's window opens the next time you launch the
+   game, that the `Tweaks and Cheats [FT]` mod is enabled, and that you can open
    its settings.
 5. Enjoy!
+
+## Updates
+
+I found UMM's update system too annoying to comply with, so you'll need to
+download the latest release .zip and extract it to the target folder just as
+above.
 
 ## Support
 
