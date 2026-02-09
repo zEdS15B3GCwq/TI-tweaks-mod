@@ -458,7 +458,7 @@ namespace TITweaksMod
 
             // Draw basic layout and title for the mod settings
             scrollPosition = GUILayout.BeginScrollView(scrollPosition);
-            MiningPatches.UI.OnGUI(Main.Settings.mineSettings, Context, selectedTab == 0);
+            ProductionPatches.UI.OnGUI(Main.Settings.mineSettings, Context, selectedTab == 0);
             NationPatches.UI.OnGUI(Main.Settings.nationSettings, Context, selectedTab == 1);
             SpaceShipPatches.UI.OnGUI(Main.Settings.combatSettings, Context, selectedTab == 2);
             CouncilorPatches.UI.OnGUI(Main.Settings.councilorSettings, Context, selectedTab == 3);
@@ -477,7 +477,7 @@ namespace TITweaksMod
             if (Main.Settings is null)
                 return;
             NationPatches.UI.OnHideGUI();
-            MiningPatches.UI.OnHideGUI(Main.Settings.mineSettings);
+            ProductionPatches.UI.OnHideGUI(Main.Settings.mineSettings);
             CouncilorPatches.UI.OnHideGUI();
             SpaceShipPatches.UI.OnHideGUI();
         }

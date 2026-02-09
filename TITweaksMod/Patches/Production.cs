@@ -1,18 +1,18 @@
 ﻿/// <summary>
-/// Mining-related patches for Terra Invicta Tweaks Mod
+/// Production-related (resources, research) patches for Terra Invicta Tweaks Mod
 /// </summary>
 using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
 using UnityEngine;
 using UnityModManagerNet;
 
-namespace TITweaksMod.MiningPatches
+namespace TITweaksMod.ProductionPatches
 {
     [HarmonyPatch(
         typeof(TIFactionState),
         nameof(TIFactionState.GetMissionControlRequirementFromMineNetwork)
     )]
-    internal static class MineMCCost_Patch
+    internal static class TIFactionState_GetMissionControlRequirementFromMineNetwork_Patch
     {
         /// <summary>
         /// Prefix patch for the TIFactionState.GetMissionControlRequirementFromMineNetwork() method that
@@ -71,7 +71,7 @@ namespace TITweaksMod.MiningPatches
         typeof(TIFactionState),
         nameof(TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects)
     )]
-    internal static class MineProductivity_Patch
+    internal static class TIFactionState_GetCurrentMiningMultiplierFromOrgsAndEffects_Patch
     {
         /// <summary>
         /// Postfix patch for the in-game TIFactionState.GetCurrentMiningMultiplierFromOrgsAndEffects()
@@ -105,7 +105,7 @@ namespace TITweaksMod.MiningPatches
     }
 
     [HarmonyPatch(typeof(TIFactionState), nameof(TIFactionState.GetYearlyIncome))]
-    internal static class RecalcMineIncomeIfNeeded_Patch
+    internal static class TIFactionState_GetYearlyIncome_Patch
     {
         /// <summary>
         /// Indicates that mining income recalculation is needed.
@@ -298,7 +298,7 @@ namespace TITweaksMod.MiningPatches
                     || MineProdSettingsAtGuiOpen.Targets
                         != settings.globalMineProductionMultiplier_Targets
                 )
-                    RecalcMineIncomeIfNeeded_Patch.needUpdate = true;
+                    TIFactionState_GetYearlyIncome_Patch.needUpdate = true;
             }
             firstFrame = true;
         }
