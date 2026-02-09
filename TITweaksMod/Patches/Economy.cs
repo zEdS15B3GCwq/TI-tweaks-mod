@@ -6,7 +6,7 @@ using PavonisInteractive.TerraInvicta;
 using UnityEngine;
 using UnityModManagerNet;
 
-namespace TITweaksMod.ProductionPatches
+namespace TITweaksMod.EconomyPatches
 {
     [HarmonyPatch(
         typeof(TIFactionState),
@@ -312,5 +312,6 @@ namespace TITweaksMod.ProductionPatches
         public float globalMineMCCostMultiplier = 1f;
         public TargetGroups globalMineProductionMultiplier_Targets = TargetGroups.None;
         public float globalMineProductionMultiplier = 1f;
+        public bool alwaysLeadResearch_Enabled = false;
     }
 }

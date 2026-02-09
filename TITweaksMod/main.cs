@@ -76,7 +76,7 @@ namespace TITweaksMod
     {
         //public string correctHashes = "";
 
-        public ProductionPatches.MiningSettings mineSettings = new();
+        public EconomyPatches.MiningSettings mineSettings = new();
         public NationPatches.NationSettings nationSettings = new();
         public SpaceShipPatches.CombatSettings combatSettings = new();
         public CouncilorPatches.CouncilorSettings councilorSettings = new();
