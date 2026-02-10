@@ -252,6 +252,9 @@ namespace TITweaksMod
         internal GUIStyle redLabel { get; }
         internal GUIStyle blueLabel { get; }
         internal GUIStyle yellowLabel { get; }
+
+        internal GUIStyle centeredLabel { get; } =
+            new(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
         internal GUILayoutOption SliderLayout { get; } = GUILayout.Width(200f);
         internal GUILayoutOption WideSliderLayout { get; } = GUILayout.Width(400f);
         internal GUILayoutOption SliderLabelLayout { get; } = GUILayout.MinWidth(60f);
@@ -431,7 +434,7 @@ namespace TITweaksMod
         private static int selectedTab = 0;
         private static string[] tabLabels =
         [
-            "Mining",
+            "Economy / Research",
             "Nation / Diplomacy",
             "Fleets / Space combat",
             "Councilors / Missions",
@@ -458,7 +461,7 @@ namespace TITweaksMod
 
             // Draw basic layout and title for the mod settings
             scrollPosition = GUILayout.BeginScrollView(scrollPosition);
-            MiningPatches.UI.OnGUI(Main.Settings.mineSettings, Context, selectedTab == 0);
+            EconomyPatches.UI.OnGUI(Main.Settings.economySettings, Context, selectedTab == 0);
             NationPatches.UI.OnGUI(Main.Settings.nationSettings, Context, selectedTab == 1);
             SpaceShipPatches.UI.OnGUI(Main.Settings.combatSettings, Context, selectedTab == 2);
             CouncilorPatches.UI.OnGUI(Main.Settings.councilorSettings, Context, selectedTab == 3);
@@ -477,7 +480,7 @@ namespace TITweaksMod
             if (Main.Settings is null)
                 return;
             NationPatches.UI.OnHideGUI();
-            MiningPatches.UI.OnHideGUI(Main.Settings.mineSettings);
+            EconomyPatches.UI.OnHideGUI(Main.Settings.economySettings);
             CouncilorPatches.UI.OnHideGUI();
             SpaceShipPatches.UI.OnHideGUI();
         }

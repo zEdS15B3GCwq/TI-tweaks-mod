@@ -1,9 +1,5 @@
-﻿using System.Net;
-using System.Runtime.InteropServices;
-using HarmonyLib;
+﻿using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
-using PavonisInteractive.TerraInvicta.GamePlayScript.AI;
-using PavonisInteractive.TerraInvicta.Systems;
 using UnityEngine;
 using UnityModManagerNet;
 
