@@ -41,9 +41,9 @@ namespace TITweaksMod.EconomyPatches
         /// <param name="__state">The original mine network size captured from the Prefix patch.</param>
         static void Postfix(TIFactionState __instance, ref int __result, int __state)
         {
-            if (!Main.enabled || Main.Settings?.mineSettings is null)
+            if (!Main.enabled || Main.Settings?.economySettings is null)
                 return;
-            MiningSettings settings = Main.Settings.mineSettings;
+            EconomySettings settings = Main.Settings.economySettings;
 
             // if linear cost is enabled, override original calculation and result
             if (settings.linearMineMCCost_Enabled)
@@ -81,10 +81,10 @@ namespace TITweaksMod.EconomyPatches
         /// <param name="__result">Tweaked mining productivity.</param>
         static void Postfix(TIFactionState __instance, ref float __result)
         {
-            if (!Main.enabled || Main.Settings?.mineSettings is null)
+            if (!Main.enabled || Main.Settings?.economySettings is null)
                 return;
 
-            MiningSettings settings = Main.Settings.mineSettings;
+            EconomySettings settings = Main.Settings.economySettings;
             if (settings.globalMineProductionMultiplier != 1.0f)
             {
                 TargetGroups targets = settings.globalMineProductionMultiplier_Targets;
@@ -131,9 +131,9 @@ namespace TITweaksMod.EconomyPatches
         /// <param name="__instance"></param>
         static void Postfix(TIFactionState __instance)
         {
-            if (!Main.enabled || Main.Settings?.mineSettings is null)
+            if (!Main.enabled || Main.Settings?.economySettings is null)
                 return; // keep original
-            MiningSettings settings = Main.Settings.mineSettings;
+            EconomySettings settings = Main.Settings.economySettings;
 
             if (needUpdate)
             {
@@ -158,6 +158,166 @@ namespace TITweaksMod.EconomyPatches
         }
     }
 
+    [HarmonyPatch(typeof(TIGlobalResearchState), nameof(TIGlobalResearchState.Leader))]
+    internal static class TIGlobalResearchState_Leader_Patch
+    {
+        static bool Prefix(TIGlobalResearchState __instance, int slot, ref TIFactionState __result)
+        {
+            if (!Main.enabled || Main.Settings?.economySettings is null)
+                return true;
+
+            EconomySettings settings = Main.Settings.economySettings;
+
+            // Skip if tweak disabled or tech isn't complete
+            if (
+                !settings.alwaysLeadResearch_Enabled
+                || __instance.GetTechProgress(slot).remainingResearch > 0
+            )
+                return true;
+
+            // playerFaction should never be null, but check it just in case
+            TIFactionState? playerFaction = GameStateManager
+                .AllFactions()
+                .FirstOrDefault(f => f.isActivePlayer);
+            if (playerFaction is null)
+                return true;
+
+            __result = playerFaction;
+            return false;
+        }
+    }
+
+    internal static class ResearchManager
+    {
+        private static TechProgress?[] globalResearch = { null, null, null };
+        private static ProjectProgress?[] projectResearch = { null, null, null };
+        private static TIFactionState? playerFaction = null;
+        internal static string?[] globalResearchLabels { get; private set; } = { null, null, null };
+        internal static string?[] projectResearchLabels { get; private set; } =
+            { null, null, null };
+        internal static bool anyResearch =>
+            globalResearch[0] is not null
+            || globalResearch[1] is not null
+            || globalResearch[2] is not null;
+        internal static bool anyProject =>
+            projectResearch[0] is not null
+            || projectResearch[1] is not null
+            || projectResearch[2] is not null;
+
+        internal static void completeResearch(int slot)
+        {
+            if (slot < 0 || slot > 2 || playerFaction is null || globalResearch[slot] is null)
+                return;
+            TechProgress tech = globalResearch[slot]!;
+            TIGlobalResearchState? tIGlobalResearchState = GameStateManager.GlobalResearch();
+            if (tIGlobalResearchState is null || tech.remainingResearch == 0)
+                return;
+            tIGlobalResearchState.AddResearchToTech(
+                slot,
+                tech.remainingResearch + 1,
+                playerFaction
+            );
+            Update();
+        }
+
+        internal static void completeProject(int slot)
+        {
+            if (slot < 0 || slot > 2 || playerFaction is null || projectResearch[slot] is null)
+                return;
+            ProjectProgress project = projectResearch[slot]!;
+            if (project.SufficientResearchAccumulated(playerFaction) || project.completed)
+                return;
+            var remainingRP =
+                project.projectTemplate.GetResearchCost(playerFaction)
+                - project.accumulatedResearch
+                + 1;
+            playerFaction.AddResearchToProject(slot + 3, remainingRP);
+            Update();
+        }
+
+        internal static void Update()
+        {
+            TIGlobalResearchState? tIGlobalResearchState = GameStateManager.GlobalResearch();
+            playerFaction = GameStateManager.AllFactions().FirstOrDefault(f => f.isActivePlayer);
+            if (tIGlobalResearchState is null || playerFaction is null)
+            {
+                for (int i = 0; i <= 2; i++)
+                {
+                    globalResearch[i] = null;
+                    projectResearch[i] = null;
+                    globalResearchLabels[i] = null;
+                    projectResearchLabels[i] = null;
+                }
+            }
+            else
+            {
+                for (int i = 0; i <= 2; i++)
+                {
+                    TechProgress tech = tIGlobalResearchState.GetTechProgress(i);
+                    TITechTemplate? template = tech.techTemplate;
+                    if (
+                        template is not null
+                        && tech.remainingResearch > 0
+                        && tech.accumulatedResearch > 0
+                    )
+                    {
+                        globalResearch[i] = tech;
+                        globalResearchLabels[i] = template.displayName;
+                    }
+                    else
+                    {
+                        globalResearch[i] = null;
+                        globalResearchLabels[i] = null;
+                    }
+
+                    ProjectProgress? project = playerFaction.GetProjectProgressInSlot(i + 3);
+                    if (
+                        project is not null
+                        && !project.SufficientResearchAccumulated(playerFaction)
+                        && !project.completed
+                    )
+                    {
+                        projectResearch[i] = project;
+                        projectResearchLabels[i] = project.projectTemplate.displayName;
+                    }
+                    else
+                    {
+                        projectResearch[i] = null;
+                        projectResearchLabels[i] = null;
+                    }
+                }
+            }
+        }
+    }
+
+    internal static class ResourceManager
+    {
+        internal static void AddResource(Resource resource, int amount)
+        {
+            FactionResource res = resource switch
+            {
+                Resource.Money => FactionResource.Money,
+                Resource.Influence => FactionResource.Influence,
+                Resource.Operations => FactionResource.Operations,
+                Resource.Research => FactionResource.Research,
+                Resource.Boost => FactionResource.Boost,
+                Resource.Water => FactionResource.Water,
+                Resource.Volatiles => FactionResource.Volatiles,
+                Resource.Metals => FactionResource.Metals,
+                Resource.NobleMetals => FactionResource.NobleMetals,
+                Resource.Fissiles => FactionResource.Fissiles,
+                Resource.Antimatter => FactionResource.Antimatter,
+                Resource.Exotics => FactionResource.Exotics,
+                _ => FactionResource.None,
+            };
+            var playerFaction = GameStateManager
+                .AllFactions()
+                .FirstOrDefault(f => f.isActivePlayer);
+            if (res != FactionResource.None && playerFaction is not null && amount != 0)
+                playerFaction.AddToCurrentResource(amount, res);
+        }
+    }
+
     [Flags]
     public enum TargetGroups
     {
@@ -167,8 +327,26 @@ namespace TITweaksMod.EconomyPatches
         Aliens = 1 << 2,
     }
 
+    public enum Resource
+    {
+        Money,
+        Influence,
+        Operations,
+        Boost,
+        Research,
+        Water,
+        Volatiles,
+        Metals,
+        NobleMetals,
+        Fissiles,
+        Antimatter,
+        Exotics,
+    }
+
     internal static class UI
     {
+        private static readonly string[] resourceLabels = Enum.GetNames(typeof(Resource));
+
         private readonly struct MineProdSettingsSnapshot(float multiplier, TargetGroups targets)
         {
             internal readonly float Multiplier = multiplier;
@@ -176,22 +354,23 @@ namespace TITweaksMod.EconomyPatches
         }
 
         private static MineProdSettingsSnapshot MineProdSettingsAtGuiOpen;
-        private static bool firstFrame = true;
+        private static bool firstOnGUI = true;
+        private static Resource selectedResource = Resource.Money;
 
-        /// <summary>
-        /// Sub-section for mining tweaks in the mod's settings UI in Unity Mod Manager.
-        /// </summary>
-        /// <param name="settings">Mining related mod settings.</param>
-        /// <param name="context">Context holding default UI styles and helper functions.</param>
-        internal static void OnGUI(MiningSettings settings, in SettingsUIContext context, bool show)
+        internal static void OnGUI(
+            EconomySettings settings,
+            in SettingsUIContext context,
+            bool show
+        )
         {
-            if (firstFrame)
+            if (firstOnGUI)
             {
+                firstOnGUI = false;
                 MineProdSettingsAtGuiOpen = new(
                     multiplier: settings.globalMineProductionMultiplier,
                     targets: settings.globalMineProductionMultiplier_Targets
                 );
-                firstFrame = false;
+                ResearchManager.Update();
             }
 
             if (show)
@@ -200,7 +379,7 @@ namespace TITweaksMod.EconomyPatches
                 GUILayout.BeginVertical(context.GroupStyle);
 
                 // group label
-                GUILayout.Label("Mining", UnityModManager.UI.h2);
+                GUILayout.Label("Economy / Research", UnityModManager.UI.h2);
 
                 // TWEAK: linear cost per mine above free cap
                 GUILayout.Space(15);
@@ -285,14 +464,130 @@ namespace TITweaksMod.EconomyPatches
                 );
                 GUILayout.EndHorizontal();
 
+                // TWEAK: always treat player faction as highest contributor to finished research
+                GUILayout.Space(15);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(
+                    "4. Always treat player faction as highest contributor to finished research:"
+                );
+                GUILayout.Space(10);
+                settings.alwaysLeadResearch_Enabled = context.OnOffToggle(
+                    settings.alwaysLeadResearch_Enabled
+                );
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+
+                // TWEAK: instant complete research by adding player research contribution
+                GUILayout.Space(15);
+                GUILayout.Label("5. Complete research:");
+                GUILayout.Space(10);
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.BeginVertical();
+                {
+                    // Global Research
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("Global Reserarch:");
+                    GUILayout.Space(10);
+                    if (ResearchManager.anyResearch)
+                    {
+                        for (int i = 0; i < ResearchManager.globalResearchLabels.Length; i++)
+                        {
+                            if (i > 0)
+                                GUILayout.Space(5);
+                            var label = ResearchManager.globalResearchLabels[i];
+                            if (label is null)
+                                GUI.enabled = false;
+                            if (GUILayout.Button(label ?? "", GUILayout.MinWidth(150f)))
+                                ResearchManager.completeResearch(i);
+                            if (label is null)
+                                GUI.enabled = true;
+                        }
+                    }
+                    else
+                        GUILayout.Label("no active research", context.redLabel);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                    GUILayout.Space(10);
+                    GUILayout.Label(
+                        "Only uncompleted global research with at least 1 point progress is shown here."
+                    );
+
+                    // Faction Projects
+                    GUILayout.Space(10);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("Faction Projects:");
+                    GUILayout.Space(10);
+                    if (ResearchManager.anyProject)
+                    {
+                        for (int i = 0; i < ResearchManager.projectResearchLabels.Length; i++)
+                        {
+                            if (i > 0)
+                                GUILayout.Space(5);
+                            var label = ResearchManager.projectResearchLabels[i];
+                            if (label is null)
+                                GUI.enabled = false;
+                            if (GUILayout.Button(label ?? "", GUILayout.MinWidth(150f)))
+                                ResearchManager.completeProject(i);
+                            if (label is null)
+                                GUI.enabled = true;
+                        }
+                    }
+                    else
+                        GUILayout.Label("no active project", context.redLabel);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                }
+                GUILayout.EndVertical();
+                GUILayout.EndHorizontal();
+
+                // TWEAK: add resources
+                GUILayout.Space(15);
+                GUILayout.Label("6. Add resources:");
+                GUILayout.Space(10);
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(20);
+                GUILayout.BeginVertical();
+                {
+                    selectedResource = (Resource)
+                        GUILayout.SelectionGrid(
+                            (int)selectedResource,
+                            resourceLabels,
+                            5,
+                            context.ToolbarStyle
+                        );
+                    GUILayout.Space(10);
+
+                    GUILayout.BeginHorizontal();
+                    int amount = 0;
+                    GUILayout.Space(5);
+                    if (GUILayout.Button("+10"))
+                        amount += 10;
+                    GUILayout.Space(5);
+                    if (GUILayout.Button("+100"))
+                        amount += 100;
+                    GUILayout.Space(5);
+                    if (GUILayout.Button("+1000"))
+                        amount += 1000;
+                    GUILayout.Space(5);
+                    if (GUILayout.Button("+10000"))
+                        amount += 10000;
+                    GUILayout.EndHorizontal();
+                    ResourceManager.AddResource(selectedResource, amount);
+                }
+                GUILayout.EndVertical();
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+
                 GUILayout.EndVertical();
             }
         }
 
-        internal static void OnHideGUI(MiningSettings settings)
+        internal static void OnHideGUI(EconomySettings settings)
         {
-            if (!firstFrame)
+            if (!firstOnGUI)
             {
+                // Indicate need for recalculation of mine production values if settings have changed
                 if (
                     MineProdSettingsAtGuiOpen.Multiplier != settings.globalMineProductionMultiplier
                     || MineProdSettingsAtGuiOpen.Targets
@@ -300,11 +595,11 @@ namespace TITweaksMod.EconomyPatches
                 )
                     TIFactionState_GetYearlyIncome_Patch.needUpdate = true;
             }
-            firstFrame = true;
+            firstOnGUI = true;
         }
     }
 
-    public class MiningSettings : UnityModManager.ModSettings
+    public class EconomySettings : UnityModManager.ModSettings
     {
         public bool linearMineMCCost_Enabled = false;
         public int linearMineMCCost = 6;
