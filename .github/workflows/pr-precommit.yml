@@ -158,7 +158,7 @@ jobs:
 
       - name: upload modified files as artifact
         if: steps.modified.outputs.changes == 'true'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.artifact-name.outputs.name }}
           path: |
