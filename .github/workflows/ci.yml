@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
 
       - name: install uv
-        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b  # v7.2.0
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
         with:
           enable-cache: true
 
@@ -185,7 +185,7 @@ jobs:
           & $sevenZip x $archive -o"$env:GITHUB_WORKSPACE" -y
 
       - name: setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: restore NuGet packages
         shell: pwsh
