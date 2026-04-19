@@ -42,7 +42,7 @@ jobs:
           enable-cache: true
 
       - name: save prek cache
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.4
         with:
           path: ~/.cache/prek
           key: prek-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}  # yamllint disable-line rule:line-length
@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: discover .7z files
         id: discover
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
           script: |
@@ -120,7 +120,7 @@ jobs:
           persist-credentials: false
 
       - name: download libs archive
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.LIBS_PRIVATE_REPO_READ_ACCESS_TOKEN }}
           script: |
