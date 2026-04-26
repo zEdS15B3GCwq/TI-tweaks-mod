@@ -3,9 +3,9 @@ name: CI
 
 on:  # yamllint disable-line rule:truthy
   push:
-    branches: ["main"]
+    branches: ["main", "dependabot"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "dependabot"]
   workflow_dispatch:  # Allows manual trigger from GitHub UI
 
 # Cancel tests if a new commit is pushed to the same PR
@@ -13,8 +13,8 @@ concurrency:
   group: >-
     ${{ github.workflow }}-${{
       github.event_name == 'pull_request' && 'pr' || 'push'
-    }}-${{
-      github.event.pull_request.number || github.ref
+    }}-${{ github.head_ref || github.ref }}-${{
+      github.event.pull_request.number || ''
     }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -49,18 +49,7 @@ jobs:
           restore-keys: |
             prek-${{ matrix.os }}-${{ matrix.python-version }}
 
-      - name: run prek (PR)
-        if: github.event_name == 'pull_request'
-        run: |
-          uvx --python ${{ matrix.python-version }} \
-            prek run \
-            --all-files \
-            --show-diff-on-failure \
-            --color=always
-        shell: bash
-
-      - name: run prek (push to main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: run prek
         run: |
           uvx --python ${{ matrix.python-version }} \
             prek run \
@@ -69,10 +58,11 @@ jobs:
             --color=always
         shell: bash
         env:
-          SKIP: no-commit-to-branch
+          SKIP: ${{ github.event_name == 'push' && 'no-commit-to-branch' || '' }}
 
   prep_libs:
     name: prepare libs matrix
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: ci
     outputs:
@@ -86,7 +76,6 @@ jobs:
           script: |
             const owner = "zEdS15B3GCwq";
             const repo = "TI-tweaks-mod-libs";
-
 
             const path = "Bundles";
             const res = await github.rest.repos.getContent({ owner, repo, path });
@@ -107,6 +96,7 @@ jobs:
 
   build_matrix:
     name: build
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
     needs: [precommit, prep_libs]
     environment: ci
@@ -196,3 +186,21 @@ jobs:
         shell: pwsh
         run: |
           msbuild "TITweaksMod\TITweaksMod.csproj" /t:Build /p:Configuration=Release /p:Platform="Any CPU"
+
+  promote_to_main:
+    name: promote dependabot branch to main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dependabot'
+    needs: [build_matrix]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: checkout dev
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          # persist-credentials: false
+
+      - name: push dev to main
+        run: git push origin HEAD:refs/heads/main
+        shell: bash
