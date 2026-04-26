@@ -94,12 +94,12 @@ jobs:
           fetch-depth: 0
 
       - name: install uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57  # v8.0.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
         with:
           enable-cache: true
 
       - name: save prek cache
-        uses: actions/cache@v5.0.4
+        uses: actions/cache@v5.0.5
         with:
           path: ~/.cache/prek
           key: prek-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}  # yamllint disable-line rule:line-length
