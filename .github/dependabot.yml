@@ -23,4 +23,3 @@ updates:
       - "zEdS15B3GCwq"
     commit-message:
       prefix: "[dependabot]"
-    target-branch: "dependabot"
