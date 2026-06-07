@@ -85,7 +85,7 @@ jobs:
 
     steps:
       - name: checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.ref }}
@@ -185,7 +185,7 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           persist-credentials: true
           ref: ${{ github.event.pull_request.head.ref }}

@@ -32,7 +32,7 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - name: checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
 
@@ -115,7 +115,7 @@ jobs:
       matrix: ${{ fromJson(needs.prep_libs.outputs.matrix) }}
     steps:
       - name: checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
 
