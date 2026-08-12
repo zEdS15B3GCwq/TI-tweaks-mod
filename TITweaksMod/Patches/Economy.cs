@@ -561,17 +561,26 @@ namespace TITweaksMod.EconomyPatches
                     GUILayout.BeginHorizontal();
                     int amount = 0;
                     GUILayout.Space(5);
+                    if (GUILayout.Button("+1"))
+                        amount += 1;
+                    GUILayout.Space(5);
                     if (GUILayout.Button("+10"))
                         amount += 10;
                     GUILayout.Space(5);
                     if (GUILayout.Button("+100"))
                         amount += 100;
                     GUILayout.Space(5);
-                    if (GUILayout.Button("+1000"))
+                    if (GUILayout.Button("+1K"))
                         amount += 1000;
                     GUILayout.Space(5);
-                    if (GUILayout.Button("+10000"))
+                    if (GUILayout.Button("+10K"))
                         amount += 10000;
+                    GUILayout.Space(5);
+                    if (GUILayout.Button("+100K"))
+                        amount += 100000;
+                    GUILayout.Space(5);
+                    if (GUILayout.Button("+1Mil"))
+                        amount += 1000000;
                     GUILayout.EndHorizontal();
                     ResourceManager.AddResource(selectedResource, amount);
                 }
