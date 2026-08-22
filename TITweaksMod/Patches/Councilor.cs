@@ -119,11 +119,19 @@ namespace TITweaksMod.CouncilorPatches
     [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.UnTurnCouncilor))]
     internal static class TICouncilorState_UnTurnCouncilor_Patch
     {
-        static bool Prefix(TICouncilorState __instance, bool dismissedByTurningFaction)
+        static bool Prefix(
+            TICouncilorState __instance,
+            bool dismissedByTurningFaction,
+            bool betraysToFaction
+        )
         {
             if (!Main.enabled || Main.Settings is null)
                 return true;
             var settings = Main.Settings.councilorSettings;
+
+            // --- DIAGNOSTIC LOGGING START ---
+            LogUnTurnDiagnostics(__instance, dismissedByTurningFaction, betraysToFaction);
+            // --- DIAGNOSTIC LOGGING END ---
 
             // Allow retired agents to be removed
             // Retired agents turn to null pointers so not allowing this would cause null pointer exceptions!
@@ -145,6 +153,90 @@ namespace TITweaksMod.CouncilorPatches
 
             // default
             return true;
+        }
+
+        private static void LogUnTurnDiagnostics(
+            TICouncilorState instance,
+            bool dismissedByTurningFaction,
+            bool betraysToFaction
+        )
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("========== UnTurnCouncilor called ==========");
+
+                // 2. Parameters
+                sb.AppendLine($"Parameter dismissedByTurningFaction = {dismissedByTurningFaction}");
+                sb.AppendLine($"Parameter betraysToFaction = {betraysToFaction}");
+
+                // 1. All fields of the instance (including inherited, private, protected, static-per-instance)
+                sb.AppendLine("---- Instance field dump ----");
+                if (instance is null)
+                {
+                    sb.AppendLine("<instance is null>");
+                }
+                else
+                {
+                    // Walk up the type hierarchy to also capture base-class private fields
+                    var type = instance.GetType();
+                    while (type is not null && type != typeof(object))
+                    {
+                        var fields = type.GetFields(
+                            System.Reflection.BindingFlags.Instance
+                                | System.Reflection.BindingFlags.Public
+                                | System.Reflection.BindingFlags.NonPublic
+                                | System.Reflection.BindingFlags.DeclaredOnly
+                        );
+
+                        foreach (var field in fields)
+                        {
+                            object? value;
+                            try
+                            {
+                                value = field.GetValue(instance);
+                            }
+                            catch (Exception ex)
+                            {
+                                value = $"<error reading field: {ex.Message}>";
+                            }
+
+                            sb.AppendLine(
+                                $"[{type.Name}] {field.Name} ({field.FieldType.Name}) = {DescribeValue(value)}"
+                            );
+                        }
+
+                        type = type.BaseType;
+                    }
+                }
+
+                // 3. Call stack - shows who called UnTurnCouncilor
+                sb.AppendLine("---- Call stack ----");
+                sb.AppendLine(new System.Diagnostics.StackTrace(true).ToString());
+
+                sb.AppendLine("==============================================");
+
+                Main.Logger?.Log(sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                Main.Logger?.Log($"UnTurnCouncilor diagnostics logging failed: {ex}");
+            }
+        }
+
+        private static string DescribeValue(object? value)
+        {
+            if (value is null)
+                return "null";
+
+            // Avoid dumping huge collections/enumerables inline; just show type + count if possible
+            if (value is System.Collections.ICollection collection)
+                return $"{value.GetType().Name} (Count={collection.Count})";
+
+            if (value is UnityEngine.Object unityObj)
+                return unityObj == null ? "null (destroyed UnityEngine.Object)" : value.ToString();
+
+            return value.ToString();
         }
     }
 
