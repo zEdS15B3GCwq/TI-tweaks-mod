@@ -40,10 +40,10 @@ for an up-to-date description.
 
 ## Updates
 
-Download the latest .zip and repeat the installation process steps.
+Download the latest .zip and repeat the installation process, overwriting previous content.
 
 I haven't been able to make mod download and update work in UMM, and I don't
-care enough to waste more time on it.
+care enough to waste more time on trying.
 
 ## Known Bugs
 
