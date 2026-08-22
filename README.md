@@ -41,6 +41,7 @@ for an up-to-date description.
 ## Updates
 
 Download the latest .zip and repeat the installation process, overwriting previous content.
+Keep the file _Settings.xml_ to preserve your mod settings.
 
 I haven't been able to make mod download and update work in UMM, and I don't
 care enough to waste more time on trying.
