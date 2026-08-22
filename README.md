@@ -7,8 +7,10 @@
 Terra Invicta tweaks mod using Harmony for patching the game, featuring an
 in-game menu. It requires Unity Mod Manager for loading the mod and for the GUI.
 
-Tested for game version 1.0.28. If you notice any crashes or other problems
-submit an [issue](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/issues).
+The mod was developed for and thoroughly tested with game version 1.0.28, and
+Unity Mod Manager version 0.32.4.0. I've used it with game versions up to 1.0.32
+without issues. It should probably keep working as long as the game's inner logic
+isn't changed. If you notice any crashes or other problems submit an [issue](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/issues).
 
 ## Table of Contents
 
@@ -24,8 +26,7 @@ for an up-to-date description.
 
 ## Installation
 
-1. Install [Unity Mod Manager](https://www.nexusmods.com/site/mods/21) (version
-   0.32.4.0) onto the game.
+1. Install [Unity Mod Manager](https://www.nexusmods.com/site/mods/21) onto the game.
 2. Download the latest release from
    [Releases](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/releases) and
    extract the downloaded `.zip` file into the game's `Mods\Enabled` folder.
@@ -41,9 +42,18 @@ for an up-to-date description.
 
 Download the latest .zip and repeat the installation process steps.
 
-Do not expect UMM to report that there's a new version available, or to be
-able to automatically download a release. I've tried dozens of configuration
-versions (including renaming the folder to the mod Id), but nothing worked.
+I haven't been able to make mod download and update work in UMM, and I don't
+care enough to waste more time on it.
+
+## Known Bugs
+
+The mod has a known bug where the councilor unturn disabler patch causes the
+game to crash when the councilor window is opened. The patch prevents the
+removal of an invalid councilor, so the list of turned councilors will have
+an invalid pointer. This can be fixed by editing the save file or by disabling
+the unturn patch before the error. If you encounter this bug, please install
+the debug version of the mod, which logs additional information for the
+unturn patch, and report the log in an issue.
 
 ## Support
 
