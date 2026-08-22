@@ -3,47 +3,19 @@ using PavonisInteractive.TerraInvicta;
 using UnityEngine;
 using UnityModManagerNet;
 
-/// <summary>
-/// COMMENTS NEED TO BE UPDATED
-/// Patches councilors and missions
-///
-/// 1. Contested mission outcomes
-///
-/// Patched in-game method: TIMissionResolution_Contested.GetMissionOutcome
-///
-/// This method is specific to contested missions, i.e. missions that can fail, unlike
-/// defend asset and similar missions that always succeed. It returns a mission
-/// result and roll value, which are used to determine success/failure.
-///
-/// The patch assigns an outcome based on who the actor and who the targets are,
-/// using a simple 3x3 matrix defined in the mod settings. The outcome is calculated
-/// in the Prefix patch and passed on to the Postfix, which overwrites the result.
-/// I decided to use this pattern, as several parameters have default values, and
-/// I've had mixed experience of such parameters being passed on to Postfix
-/// correctly (if the in-game method assigns to them).
-///
-/// Relevant in-game methods:
-///     - TIMissionState.ResolveMission: calls GetMissionOutcome to get the result
-///           Unpatched, as it runs for all missions including uncontested ones,
-///           and it is quite complex and may have a lot of side-effects, meaning
-///           some code in the middle would need to be patched with a transpiler to
-///           achieve the desired changes.
-///     - TIMissionResolution_Contested.GetSuccessChance: calculates the chance of
-///           succeeding at a mission. Similar to GetMissionOutcome, which uses
-///           this internally, but since the chance is not directly used to determine
-///           the outcome, it was not necessary to patch it. I haven't tested it,
-///           but it's possible that the mission planning phase also shows these
-///           chances when selecting missions. This is just a guess, but I didn't
-///           want to mess with something like that.
-/// </summary>
 namespace TITweaksMod.CouncilorPatches
 {
+    // Patch to override contested mission outcome
+    // To preserve side effects of the original method, it is allowed to run unmodified.
+    // The desired outcome is determined in the prefix, which has access to input parameters,
+    // then applied in the postfix.
     [HarmonyPatch(
         typeof(TIMissionResolution_Contested),
         nameof(TIMissionResolution_Contested.GetMissionOutcome)
     )]
     internal static class TIMissionResolution_Contested_GetMissionOutcome_Patch
     {
+        // Prefix: determine desired outcome in prefix and store in __state
         static bool Prefix(
             TIMissionResolution __instance,
             TIMissionTemplate mission,
@@ -60,6 +32,7 @@ namespace TITweaksMod.CouncilorPatches
             var councilorFaction = councilor.faction;
             var targetFaction = mission.target.GetRelevantFaction(target);
 
+            // Get desired outcome based on settings
             __state = Main.Settings.councilorSettings.MissionOutcomeMatrix.GetOutcome(
                 councilorFaction,
                 targetFaction
@@ -67,6 +40,7 @@ namespace TITweaksMod.CouncilorPatches
             return true;
         }
 
+        // Postfix: override the result based on __state
         static void Postfix(MissionOutcome __state, ref TIMissionResult __result)
         {
             if (!Main.enabled || Main.Settings is null)
@@ -97,6 +71,7 @@ namespace TITweaksMod.CouncilorPatches
         }
     }
 
+    // Patch to increase detention duration
     [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.DetainCouncilor))]
     internal static class TICouncilorState_DetainCouncilor_Patch
     {
@@ -110,6 +85,7 @@ namespace TITweaksMod.CouncilorPatches
             if (!Main.enabled || Main.Settings is null)
                 return true;
 
+            // Check if tweak needs to be applied based on settings - return if not applicable
             var settings = Main.Settings.councilorSettings;
             switch (settings.LongerDetain_Enabled)
             {
@@ -136,6 +112,10 @@ namespace TITweaksMod.CouncilorPatches
         }
     }
 
+    // Patch to prevent losing turned councilors
+    // There is a bug where turned councilors are not removed from the turned list properly even
+    // when the councilor object had become invalid.
+    // I have not been able to find the root cause of this bug yet.
     [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.UnTurnCouncilor))]
     internal static class TICouncilorState_UnTurnCouncilor_Patch
     {
@@ -149,9 +129,6 @@ namespace TITweaksMod.CouncilorPatches
             // Retired agents turn to null pointers so not allowing this would cause null pointer exceptions!
             if (__instance.archived)
             {
-                //Main.Logger?.Log(
-                //    $"UnTurnCouncilor patch: councilor {__instance.displayName}|archived {__instance.archived}, faction {__instance.agentForFaction?.displayName}"
-                //);
                 return true;
             }
 
@@ -171,6 +148,7 @@ namespace TITweaksMod.CouncilorPatches
         }
     }
 
+    // Class to maintain lists of councilors and apply operations to them
     internal static class CouncilorManager
     {
         internal static TICouncilorState? selectedCouncilor { get; private set; } = null;
@@ -397,6 +375,7 @@ namespace TITweaksMod.CouncilorPatches
         }
     }
 
+    // Class to maintain list of traits and to provide filtering for the trait editor UI
     internal static class TraitManager
     {
         internal readonly struct TraitEntry
@@ -416,8 +395,6 @@ namespace TITweaksMod.CouncilorPatches
         private static TraitEntry[] _traits = [];
         private static int[] _filteredTraitIndices = [];
         internal static string[] FilteredTraitNames { get; private set; } = [];
-
-        //internal static int FilteredTraitCount => _filteredTraitIndices.Length;
 
         internal static void Update()
         {
@@ -484,6 +461,8 @@ namespace TITweaksMod.CouncilorPatches
         }
     }
 
+    // Tweak options: off, only apply to player, apply to all
+    // I should probably give it a better name.
     public enum OffPlayerAll
     {
         Off = 0,
@@ -510,17 +489,27 @@ namespace TITweaksMod.CouncilorPatches
             "Aliens",
             "Neutral",
         ];
+
+        // councilor selection options are built dynamically
         private static string[] councilorSelectionLabels = [];
+
+        // do initialisation only on first OnGUI call
         private static bool firstOnGUI = true;
+
+        // dirty flag to force update of state on next OnGUI call
         private static bool stateDirty = false;
         private static int selectedCouncilorIndex = 0;
         private static int selectedTraitIndex = 0;
         private static string traitSearchTextLower = string.Empty;
+
+        // list of enemy selection options is built dynamically, and may include a selected enemy councilor
         private static string[] enemySelectionLabels = [];
         private static int selectedEnemyIndex = 0;
         private static int maxCouncilorAttribute = 0;
         private static TICouncilorState? lastSelectedPlayerCouncilor = null;
         private static Dictionary<CouncilorAttribute, int> selectedPlayerCouncilorAttrs = new();
+
+        // dirty flag to indicate that the selected councilor's attributes have changed and need to be reloaded
         private static bool selectedPlayerCouncilorAttrsDirty = true;
 
         private static void Update()
@@ -1005,6 +994,8 @@ namespace TITweaksMod.CouncilorPatches
         CriticalSucceed = 4,
     }
 
+    // Matrix to determine the outcome of a contested mission based
+    // on the councilor's faction and the target faction
     public class MissionOutcomeMatrix
     {
         public Row Player { get; set; } = new();
