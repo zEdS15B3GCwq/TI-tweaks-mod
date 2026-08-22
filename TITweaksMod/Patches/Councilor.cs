@@ -149,9 +149,6 @@ namespace TITweaksMod.CouncilorPatches
             // Retired agents turn to null pointers so not allowing this would cause null pointer exceptions!
             if (__instance.archived)
             {
-                //Main.Logger?.Log(
-                //    $"UnTurnCouncilor patch: councilor {__instance.displayName}|archived {__instance.archived}, faction {__instance.agentForFaction?.displayName}"
-                //);
                 return true;
             }
 
