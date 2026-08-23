@@ -1,7 +1,7 @@
 # Normalize line endings
 * text=auto eol=lf
 
-# Force LF for everything not meant for Windows
+# Force CRLF for everything meant for Windows
 *.slnx text eol=crlf
 TITweaksMod/** text eol=crlf
 

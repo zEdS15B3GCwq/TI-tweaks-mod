@@ -1,13 +1,12 @@
 {
 	"Id": "TITweaksMod",
-	"DisplayName": "Tweaks [FT]",
+	"DisplayName": "Tweaks and Cheats [FT]",
 	"Author": "FT",
 	"Description": "Terra Invicta mod that allows in-game tweaking of various game variables.",
-	"Version": "1.0.0",
-	"ManagerVersion": "0.32.4.0",
-	"GameVersion": "1.0.26",
+	"Version": "0.51.0",
+	"ManagerVersion": "0.33.0",
+	"GameVersion": "1.0.51",
 	"AssemblyName": "TITweaksMod.dll",
 	"EntryMethod": "TITweaksMod.Main.Load",
-	"Repository": "https://github.com/zEdS15B3GCwq/TI-tweaks-mod",
 	"Website": "https://github.com/zEdS15B3GCwq/TI-tweaks-mod"
 }
