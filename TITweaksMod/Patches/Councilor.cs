@@ -631,6 +631,7 @@ namespace TITweaksMod.CouncilorPatches
             if (firstOnGUI || stateDirty)
             {
                 firstOnGUI = false;
+                stateDirty = false;
                 CouncilorManager.Update();
                 TraitManager.Update();
                 Update();
