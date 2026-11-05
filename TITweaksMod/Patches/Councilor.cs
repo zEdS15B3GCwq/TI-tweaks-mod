@@ -137,24 +137,30 @@ namespace TITweaksMod.CouncilorPatches
     // Therefore unturning is only blocked while the agent is still an active member of its
     // faction's council, i.e. still working as a spy.
     //
-    // Note on the dismissedByTurningFaction parameter: it is intentionally not used.
+    // Note on the dismissedByTurningFaction parameter: it is only used as a redundant early allow.
     // - It is only ever true in case 3, when the turning faction (here: the player) dismisses its
     //   own agent from the enemy council (DismissCouncilor passes
     //   dismissingFaction == agentForFaction). All other callers pass false.
     // - In that case the agent has already been removed from its faction's council, so the council
-    //   membership check below allows the unturn anyway. The parameter adds no information.
+    //   membership check below allows the unturn anyway. The explicit check only guards against a
+    //   future game version calling UnTurnCouncilor before removing the agent from the council.
     // - It cannot be used to decide when to block: it is also false when the owning faction
     //   dismisses the agent (e.g. the AI dismissing a detected spy), which is cleanup that must not
     //   be blocked. Treating false as "block" was the cause of the stale turned agent bug.
     [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.UnTurnCouncilor))]
     internal static class TICouncilorState_UnTurnCouncilor_Patch
     {
-        static bool Prefix(TICouncilorState __instance)
+        static bool Prefix(TICouncilorState __instance, bool dismissedByTurningFaction)
         {
             if (!Main.enabled || Main.Settings is null)
                 return true;
 
             if (!Main.Settings.councilorSettings.NeverLoseTurnedAgents)
+                return true;
+
+            // Case 3, dismissal by the player: redundant with the council check below, kept as a
+            // safeguard in case the game changes the order of operations in DismissCouncilor.
+            if (dismissedByTurningFaction)
                 return true;
 
             // Only protect the player's turned agents
@@ -168,8 +174,8 @@ namespace TITweaksMod.CouncilorPatches
 
             // Case 3: dismissed agents are already removed from their faction's council.
             // Blocking would not prevent the dismissal, only leave a stale entry in the turned list.
-            // This also covers dismissal by the player (turning faction), i.e. the only case where
-            // dismissedByTurningFaction is true.
+            // This also covers dismissal by the player (turning faction), which is checked explicitly
+            // above via dismissedByTurningFaction.
             if (!(__instance.faction?.councilors.Contains(__instance) ?? false))
                 return true;
 
