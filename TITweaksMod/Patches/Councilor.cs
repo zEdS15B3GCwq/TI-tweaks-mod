@@ -112,39 +112,111 @@ namespace TITweaksMod.CouncilorPatches
         }
     }
 
-    // Patch to prevent losing turned councilors
-    // There is a bug where turned councilors are not removed from the turned list properly even
-    // when the councilor object had become invalid.
-    // I have not been able to find the root cause of this bug yet.
+    // Patch to prevent player's turned agents from unturning while they remain active.
+    // Works together with TICouncilorState_TurnCouncilor_Patch below.
+    //
+    // The game calls UnTurnCouncilor from four places:
+    // 1. TIMissionEffect_Inspire.ApplyEffect: the owning faction inspires the agent and it
+    //    defects back based on its loyalty. This is the only call the patch should block.
+    // 2. TICouncilorState.Retire (also used by KillCouncilor): the agent is archived first and
+    //    removed from the game state afterwards.
+    // 3. TIFactionState.DismissCouncilor: the agent is dismissed, e.g. by the AI after detecting
+    //    or suspecting it as a spy, or to make room for a better candidate. The agent is removed
+    //    from the owning faction's council and moved to the turning faction's recruit pool
+    //    *before* UnTurnCouncilor is called.
+    // 4. TICouncilorState.TurnCouncilor: another faction turns the agent. The old link is unturned
+    //    before the new one is set up. Blocking is handled by the TurnCouncilor patch instead.
+    //
+    // In cases 2-4 UnTurnCouncilor is only state cleanup: the agent leaves anyway, and blocking the
+    // call merely leaves it in the player's turnedCouncilors list. Case 3 is the dangerous one:
+    // the agent ends up in the player's recruit pool, which later expires candidates by archiving
+    // and removing them from the game without calling UnTurnCouncilor. The removed agent then
+    // stays in turnedCouncilors as an invalid reference, which crashes the game in various places
+    // (e.g. the councilor screen).
+    //
+    // Therefore unturning is only blocked while the agent is still an active member of its
+    // faction's council, i.e. still working as a spy.
     [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.UnTurnCouncilor))]
     internal static class TICouncilorState_UnTurnCouncilor_Patch
     {
-        static bool Prefix(TICouncilorState __instance, bool dismissedByTurningFaction)
+        static bool Prefix(TICouncilorState __instance)
         {
             if (!Main.enabled || Main.Settings is null)
                 return true;
-            var settings = Main.Settings.councilorSettings;
 
-            // Allow retired agents to be removed
-            // Retired agents turn to null pointers so not allowing this would cause null pointer exceptions!
+            if (!Main.Settings.councilorSettings.NeverLoseTurnedAgents)
+                return true;
+
+            // Only protect the player's turned agents
+            if (!(__instance.agentForFaction?.isActivePlayer ?? false))
+                return true;
+
+            // Case 2: retired or killed agents are archived and removed from the game.
+            // Blocking would leave an invalid reference in the turned list.
             if (__instance.archived)
-            {
-                return true;
-            }
-
-            // Allow dismissing turned agents
-            if (dismissedByTurningFaction)
                 return true;
 
-            // Prevent losing player's turned agents if settings is enabled
+            // Case 3: dismissed agents are already removed from their faction's council.
+            // Blocking would not prevent the dismissal, only leave a stale entry in the turned list.
+            // This also covers dismissal by the player (turning faction).
+            if (!(__instance.faction?.councilors.Contains(__instance) ?? false))
+                return true;
+
+            // Case 1 (and case 4, which is normally stopped earlier by the TurnCouncilor patch):
+            // the agent remains active in its faction's council, keep it turned.
+            return false;
+        }
+    }
+
+    // Patch to prevent player's turned agents from being turned by another faction.
+    // Works together with TICouncilorState_UnTurnCouncilor_Patch above.
+    //
+    // The game calls TurnCouncilor from:
+    // - TIMissionEffect_TurnCouncilor.ApplyDelayedEffect: a faction's successful Turn Councilor
+    //   mission. Nothing else happens after the call, so blocking simply nullifies the effect.
+    // - TIMissionEffect_Assassinate.ApplyEffect: when a faction fails to assassinate its own
+    //   councilor, the target is turned to a random human faction and then dismissed by that
+    //   faction. If blocked, the agent stays turned for the player and the following
+    //   DismissCouncilor call moves it to the player's recruit pool, and unturns it as cleanup
+    //   (allowed by the UnTurnCouncilor patch since the agent is no longer in the council).
+    // - Debug terminal command (irrelevant).
+    //
+    // TurnCouncilor first unturns the old link, then sets agentForFaction to the new faction and
+    // adds the agent to the new faction's turnedCouncilors. Blocking only the inner
+    // UnTurnCouncilor call is not enough: the agent would still be reassigned and would remain in
+    // the player's turned list as well, pointing to an agent that works for someone else. When
+    // that agent is later dismissed or retired, only the new faction's list is cleaned up, leaving
+    // a stale reference in the player's list. So the whole TurnCouncilor call must be blocked.
+    //
+    // Turning an agent that is already turned for the player by the player again is also blocked:
+    // the game would add the agent to turnedCouncilors a second time, and a later unturn would
+    // only remove one of the entries.
+    [HarmonyPatch(typeof(TICouncilorState), nameof(TICouncilorState.TurnCouncilor))]
+    internal static class TICouncilorState_TurnCouncilor_Patch
+    {
+        static bool Prefix(TICouncilorState __instance, TIFactionState turningFaction)
+        {
+            if (!Main.enabled || Main.Settings is null)
+                return true;
+
+            if (!Main.Settings.councilorSettings.NeverLoseTurnedAgents)
+                return true;
+
+            // Only protect the player's turned agents
+            if (!(__instance.agentForFaction?.isActivePlayer ?? false))
+                return true;
+
+            // Only protect agents that are still active in their faction's council, consistent
+            // with the UnTurnCouncilor patch.
             if (
-                settings.NeverLoseTurnedAgents
-                && (__instance.agentForFaction?.isActivePlayer ?? false)
+                __instance.archived
+                || !(__instance.faction?.councilors.Contains(__instance) ?? false)
             )
-                return false;
+                return true;
 
-            // default
-            return true;
+            // Block reassignment to another faction (including the agent's own faction)
+            // and duplicate re-turning by the player.
+            return false;
         }
     }
 
