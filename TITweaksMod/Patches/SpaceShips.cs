@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using PavonisInteractive.TerraInvicta;
+using PavonisInteractive.TerraInvicta.Systems.GameTime;
 using PavonisInteractive.TerraInvicta.Tasks;
 using UnityEngine;
 using UnityModManagerNet;
@@ -327,7 +328,7 @@ namespace TITweaksMod.SpaceShipPatches
         }
     }
 
-    internal static class FleetManager
+    internal static class TweakHelper
     {
         internal static TISpaceShipState? selectedPlayerShip { get; private set; } = null;
 
@@ -459,6 +460,95 @@ namespace TITweaksMod.SpaceShipPatches
                 ship.ClearShipDamageVisualizations();
             }
         }
+
+        private static void ProbesArrive(TIFactionState playerFaction)
+        {
+            var gameTime = GameTimeManager.Singleton;
+            var timeQueue = gameTime.timeQueue;
+
+            var spaceBodiesWithProbe = playerFaction.SpaceBodiesWithProspectorEnRoute();
+            if (spaceBodiesWithProbe is null || spaceBodiesWithProbe.Count == 0)
+                return;
+
+            var name = playerFaction.factionOperationCompleteName;
+            var templateA = OperationsManager
+                .operationsLookup[typeof(LaunchProbeOperation)]
+                .GetTemplate();
+            var templateB = OperationsManager
+                .operationsLookup[typeof(LaunchOverrideProbeOperation)]
+                .GetTemplate();
+            TIOperationTemplate[] templates = [templateA, templateB];
+
+            foreach (var spaceBody in spaceBodiesWithProbe)
+            {
+                // in public global::TIDateTime PavonisInteractive.TerraInvicta.TIFactionState.ProspectorArrival(PavonisInteractive.TerraInvicta.TISpaceBodyState spaceBody)
+                // return gameTime.GetTimeForPendingEvent(factionOperationCompleteName, this, spaceBody, OperationsManager.operationsLookup[typeof(LaunchProbeOperation)].GetTemplate()) ?? gameTime.GetTimeForPendingEvent(factionOperationCompleteName, this, spaceBody, OperationsManager.operationsLookup[typeof(LaunchOverrideProbeOperation)].GetTemplate());
+                foreach (var template in templates)
+                {
+                    var ev = timeQueue.FindEvent(name, playerFaction, spaceBody, template);
+                    if (ev is not null)
+                    {
+                        int secs = (int)(ev.time.ExportTime() - gameTime.Now).TotalSeconds; // time required to reach the space body, in seconds
+                        gameTime.ExtendTimeEvent(
+                            name,
+                            playerFaction,
+                            spaceBody,
+                            template,
+                            -secs - 1,
+                            TITimeQueueRepeatType.Second
+                        ); // make event already past
+                    }
+                }
+            }
+            gameTime.timeQueue.UpdateToTime(gameTime.Now); // update the queue to the current time to trigger any events that are now due
+        }
+
+        internal enum whichBodies
+        {
+            withProbesEnRoute,
+            allExplorable,
+            allBodies,
+        }
+
+        internal static void ProspectBodies(whichBodies target)
+        {
+            var playerFaction = GameStateManager
+                .AllFactions()
+                .FirstOrDefault(x => x.isActivePlayer);
+            if (playerFaction is null)
+            {
+                Main.Logger?.Log("SpeedupProbes: no player faction found");
+                return;
+            }
+
+            var spaceBodiesWithProbe = playerFaction.SpaceBodiesWithProspectorEnRoute();
+
+            // finish all probes en route
+            ProbesArrive(playerFaction);
+            if (target == whichBodies.withProbesEnRoute)
+                return;
+
+            List<TISpaceBodyState> spaceBodies = GameStateManager.AllSpaceBodies().ToList();
+            foreach (var spaceBody in spaceBodies)
+            {
+                // skip space bodies already prospected or with a probe en route
+                if (spaceBodiesWithProbe.Contains(spaceBody) || playerFaction.Prospected(spaceBody))
+                    continue;
+
+                // CanProspectFromShip() checks for hab sites and whether the player can explore here
+                // if we want all bodies explored regardless, then we only check for hab sites
+                if (
+                    (target == whichBodies.allBodies && spaceBody.habSites.Length != 0)
+                    || (
+                        target == whichBodies.allExplorable
+                        && playerFaction.CanProspectFromShip(spaceBody)
+                    )
+                )
+                {
+                    playerFaction.ProspectSpaceBody(spaceBody);
+                }
+            }
+        }
     }
 
     internal static class UI
@@ -470,7 +560,7 @@ namespace TITweaksMod.SpaceShipPatches
             if (firstOnGUI)
             {
                 firstOnGUI = false;
-                FleetManager.Update();
+                TweakHelper.Update();
             }
 
             if (show)
@@ -527,19 +617,19 @@ namespace TITweaksMod.SpaceShipPatches
                     GUILayout.Label("4. Operations on selected player fleet or ship:");
                     GUILayout.Space(10);
                     TIGameState? selected = null;
-                    if (FleetManager.selectedPlayerShip is not null)
+                    if (TweakHelper.selectedPlayerShip is not null)
                     {
-                        selected = FleetManager.selectedPlayerShip;
+                        selected = TweakHelper.selectedPlayerShip;
                         GUILayout.Label(
-                            FleetManager.selectedPlayerShip.displayName,
+                            TweakHelper.selectedPlayerShip.displayName,
                             context.yellowLabel
                         );
                     }
-                    else if (FleetManager.selectedPlayerFleet is not null)
+                    else if (TweakHelper.selectedPlayerFleet is not null)
                     {
-                        selected = FleetManager.selectedPlayerFleet;
+                        selected = TweakHelper.selectedPlayerFleet;
                         GUILayout.Label(
-                            FleetManager.selectedPlayerFleet.activePlayerDisplayName,
+                            TweakHelper.selectedPlayerFleet.activePlayerDisplayName,
                             context.blueLabel
                         );
                     }
@@ -555,15 +645,15 @@ namespace TITweaksMod.SpaceShipPatches
                     if (selected is not TISpaceFleetState)
                         GUI.enabled = false;
                     if (GUILayout.Button("Arrive at Destination") && selected is TISpaceFleetState)
-                        FleetManager.ArriveFleet((TISpaceFleetState)selected);
+                        TweakHelper.ArriveFleet((TISpaceFleetState)selected);
                     if (selected is not TISpaceFleetState)
                         GUI.enabled = true;
                     GUILayout.Space(10);
                     if (GUILayout.Button("Refuel & Rearm"))
-                        FleetManager.RefuelRearmFleet(selected);
+                        TweakHelper.RefuelRearmFleet(selected);
                     GUILayout.Space(10);
                     if (GUILayout.Button("Repair"))
-                        FleetManager.RepairFleet(selected);
+                        TweakHelper.RepairFleet(selected);
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
 
@@ -625,6 +715,22 @@ namespace TITweaksMod.SpaceShipPatches
                         "Alien AI",
                         context.ToggleStyle
                     );
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+
+                    // TWEAK: prospect space bodies
+                    GUILayout.Space(15);
+                    GUILayout.Label("7. Prospect space bodies:");
+                    GUILayout.Space(10);
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("With probes en route"))
+                        TweakHelper.ProspectBodies(TweakHelper.whichBodies.withProbesEnRoute);
+                    GUILayout.Space(5);
+                    if (GUILayout.Button("All explorable"))
+                        TweakHelper.ProspectBodies(TweakHelper.whichBodies.allExplorable);
+                    GUILayout.Space(5);
+                    if (GUILayout.Button("All"))
+                        TweakHelper.ProspectBodies(TweakHelper.whichBodies.allBodies);
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
                 }
