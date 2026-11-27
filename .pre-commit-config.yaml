@@ -42,13 +42,13 @@ repos:
 
   # Check markdown files
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: c8fd5003603dd6f12447314ecd935ba87c09aff5  # frozen: v0.46.0
+    rev: bf6d1792b8bc7f6cc93f10cc27735a4cb0c38e47  # frozen: v0.50.1
     hooks:
       - id: markdownlint
 
   # Check for common misspellings 1.
   - repo: https://github.com/crate-ci/typos
-    rev: b67d1be06b53c7a9ecb6254ee4643e179800df72  # frozen: typos-dict-v0.13.11
+    rev: 276087d9a4f06398b3e04825487805e2d7375888  # frozen: v1.52.2
     hooks:
       - id: typos
         args: []
@@ -56,7 +56,7 @@ repos:
 
   # Check for common misspellings 2.
   - repo: https://github.com/codespell-project/codespell
-    rev: 63c8f8312b7559622c0d82815639671ae42132ac  # frozen: v2.4.1
+    rev: 57b21406f092110c18776e39b0bda50d37c945c8  # frozen: v2.4.3
     hooks:
       - id: codespell
 
