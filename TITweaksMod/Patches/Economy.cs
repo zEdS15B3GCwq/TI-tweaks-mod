@@ -147,12 +147,10 @@ namespace TITweaksMod.EconomyPatches
             if (dirtyFactions?.Contains(__instance) ?? false)
             {
                 __instance.SetResourceIncomeDataDirty();
-                __instance.habs.ForEach(
-                    delegate(TIHabState x)
-                    {
-                        x.UpdateCurrentAnnualNetResourceIncomes();
-                    }
-                );
+                foreach (var hab in __instance.habs)
+                {
+                    hab.UpdateCurrentAnnualNetResourceIncomes();
+                }
                 dirtyFactions.Remove(__instance);
             }
         }
