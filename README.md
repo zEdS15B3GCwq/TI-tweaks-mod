@@ -26,7 +26,8 @@ for an up-to-date description.
 
 ## Installation
 
-1. Install [Unity Mod Manager](https://www.nexusmods.com/site/mods/21) onto the game.
+1. Install [Unity Mod Manager](https://www.nexusmods.com/site/mods/21) onto the
+   game.
 2. Download the latest release from
    [Releases](https://github.com/zEdS15B3GCwq/TI-tweaks-mod/releases) and
    extract the downloaded `.zip` file into the game's `Mods\Enabled` folder.
